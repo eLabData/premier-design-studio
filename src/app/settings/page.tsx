@@ -117,19 +117,24 @@ function SettingsContent() {
   }, [profile?.full_name])
 
   const handleSaveProfile = async () => {
+    if (!user) return
     setSavingProfile(true)
     setProfileMsg(null)
+    try {
     const supabase = createSupabaseBrowser()
     const { error } = await supabase
       .from('profiles')
       .update({ full_name: fullName, updated_at: new Date().toISOString() })
-      .eq('id', user!.id)
+      .eq('id', user.id)
 
     if (error) {
       setProfileMsg('Erro ao salvar. Tente novamente.')
     } else {
       setProfile({ ...profile!, full_name: fullName })
       setProfileMsg('Perfil salvo com sucesso.')
+    }
+    } catch {
+      setProfileMsg('Erro ao salvar. Tente novamente.')
     }
     setSavingProfile(false)
     setTimeout(() => setProfileMsg(null), 3000)
@@ -170,7 +175,7 @@ function SettingsContent() {
     await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
-    router.push('/login')
+    window.location.href = '/login'
   }
 
   const handleDeleteAccount = async () => {
@@ -189,9 +194,14 @@ function SettingsContent() {
       <div className="max-w-3xl mx-auto px-6 py-8 space-y-10">
 
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Configurações</h1>
-          <p className="text-sm text-zinc-500 mt-1">Gerencie seu perfil, plano e conta.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-zinc-100">Configurações</h1>
+            <p className="text-sm text-zinc-500 mt-1">Gerencie seu perfil, plano e conta.</p>
+          </div>
+          <Link href="/" className="text-sm text-zinc-400 hover:text-white transition-colors border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-lg">
+            ← Voltar
+          </Link>
         </div>
 
         {/* Stripe feedback banners */}

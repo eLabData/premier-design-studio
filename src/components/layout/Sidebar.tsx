@@ -13,6 +13,7 @@ import {
   Sparkles,
   Crown,
 } from 'lucide-react'
+import { VERSION } from '@/lib/version'
 import { useAuthStore } from '@/lib/auth-store'
 import { createSupabaseBrowser } from '@/lib/supabase-browser'
 
@@ -49,7 +50,7 @@ export function Sidebar() {
     await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
-    router.push('/login')
+    window.location.href = '/login'
   }
 
   return (
@@ -141,6 +142,7 @@ export function Sidebar() {
           <LogOut className="w-4 h-4 shrink-0" />
           Sair
         </button>
+        <p className="text-[10px] text-zinc-700 mt-2 text-center">v{VERSION}</p>
       </div>
     </aside>
   )
