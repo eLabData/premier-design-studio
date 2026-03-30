@@ -18,7 +18,7 @@ import {
   Zap,
 } from 'lucide-react'
 import type { ScheduledPost } from '@/types/project'
-import { PROVIDERS, type PostizIntegration } from '@/lib/postiz'
+import { PROVIDERS, type SocialIntegration } from '@/lib/postiz'
 
 interface Props {
   posts: ScheduledPost[]
@@ -26,7 +26,7 @@ interface Props {
   onReschedule?: (id: string) => void
   onCancel?: (id: string) => void
   onPublishNow?: (id: string) => void
-  integrations?: PostizIntegration[]
+  integrations?: SocialIntegration[]
 }
 
 const PROVIDER_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -61,9 +61,9 @@ export function PostQueue({ posts, onEdit, onReschedule, onCancel, onPublishNow,
     (a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime(),
   )
 
-  // Build a map from providerIdentifier -> integration for quick lookup
-  const integrationByProvider = integrations.reduce<Record<string, PostizIntegration>>((acc, i) => {
-    if (!acc[i.providerIdentifier]) acc[i.providerIdentifier] = i
+  // Build a map from provider -> integration for quick lookup
+  const integrationByProvider = integrations.reduce<Record<string, SocialIntegration>>((acc, i) => {
+    if (!acc[i.provider]) acc[i.provider] = i
     return acc
   }, {})
 
@@ -97,14 +97,14 @@ export function PostQueue({ posts, onEdit, onReschedule, onCancel, onPublishNow,
                 const info = PROVIDERS[platform]
                 const Icon = PROVIDER_ICONS[platform] ?? Globe
 
-                if (integration?.picture) {
+                if (integration?.account_picture) {
                   return (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       key={platform}
-                      src={integration.picture}
-                      alt={integration.name}
-                      title={integration.name}
+                      src={integration.account_picture}
+                      alt={integration.account_name}
+                      title={integration.account_name}
                       className="w-4 h-4 rounded-full border border-zinc-700 object-cover"
                     />
                   )

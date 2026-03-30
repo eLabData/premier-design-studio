@@ -25,7 +25,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import type { ScheduledPost, PostProject } from '@/types/project'
 import { saveScheduledPost } from '@/lib/storage'
-import { createPost, uploadMediaFromUrl, PROVIDERS, type PostizIntegration } from '@/lib/postiz'
+import { publishPost, PROVIDERS, type SocialIntegration } from '@/lib/postiz'
 
 interface Props {
   open: boolean
@@ -33,8 +33,7 @@ interface Props {
   projects: PostProject[]
   preselectedDate?: Date | null
   onScheduled?: (post: ScheduledPost) => void
-  integrations?: PostizIntegration[]
-  apiKey?: string | null
+  integrations?: SocialIntegration[]
 }
 
 const PROVIDER_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -58,7 +57,6 @@ export function ScheduleDialog({
   preselectedDate,
   onScheduled,
   integrations = [],
-  apiKey,
 }: Props) {
   const [selectedProjectId, setSelectedProjectId] = useState('')
   const [caption, setCaption] = useState('')
@@ -87,66 +85,51 @@ export function ScheduleDialog({
     setPublishResult(null)
 
     try {
-      // If the selected project has a thumbnail, upload it first
-      let imagePath: string | undefined
-      if (selectedProject?.thumbnail_url && apiKey) {
-        try {
-          const uploaded = await uploadMediaFromUrl(apiKey, selectedProject.thumbnail_url)
-          imagePath = uploaded.path
-        } catch {
-          // Non-fatal: continue without image
-        }
+      const media: { url: string; type: 'image' | 'video' }[] = []
+      if (selectedProject?.thumbnail_url) {
+        media.push({ url: selectedProject.thumbnail_url, type: 'image' })
       }
 
-      if (apiKey) {
-        // Use Postiz API
-        const promises = selectedIntegrationIds.map((integrationId) =>
-          createPost(apiKey, {
-            integrationId,
-            content: caption,
-            ...(mode === 'schedule' && scheduledDate
-              ? { publishDate: new Date(scheduledDate).toISOString() }
-              : {}),
-            ...(mode === 'draft' ? { type: 'draft' } : {}),
-            ...(imagePath ? { image: [{ path: imagePath }] } : {}),
-          }),
-        )
-        await Promise.all(promises)
-        setPublishResult({
-          ok: true,
-          message:
-            mode === 'now'
-              ? 'Post publicado com sucesso!'
-              : mode === 'draft'
-              ? 'Rascunho salvo no Postiz.'
-              : 'Post agendado com sucesso!',
-        })
-      } else {
-        // Fallback: save locally
-        const selectedIntegrations = selectedIntegrationIds
+      if (mode === 'draft') {
+        // Save locally as a draft
+        const selectedIntegrationList = selectedIntegrationIds
           .map((id) => integrations.find((i) => i.id === id))
-          .filter(Boolean) as PostizIntegration[]
+          .filter(Boolean) as SocialIntegration[]
 
         const post: ScheduledPost = {
           id: crypto.randomUUID(),
           project_id: selectedProjectId,
-          platforms: selectedIntegrations.map(
-            (i) => i.providerIdentifier as ScheduledPost['platforms'][number],
+          platforms: selectedIntegrationList.map(
+            (i) => i.provider as ScheduledPost['platforms'][number],
           ),
-          scheduled_at:
-            mode === 'now'
-              ? new Date().toISOString()
-              : new Date(scheduledDate).toISOString(),
+          scheduled_at: scheduledDate ? new Date(scheduledDate).toISOString() : new Date().toISOString(),
           status: 'scheduled',
           caption,
           hashtags: [],
         }
         saveScheduledPost(post)
         onScheduled?.(post)
-        setPublishResult({ ok: true, message: 'Post salvo localmente.' })
+        setPublishResult({ ok: true, message: 'Rascunho salvo.' })
+      } else {
+        const { results } = await publishPost({
+          integrationIds: selectedIntegrationIds,
+          content: caption,
+          media: media.length ? media : undefined,
+          scheduledAt: mode === 'schedule' ? new Date(scheduledDate).toISOString() : undefined,
+          projectId: selectedProjectId || undefined,
+        })
+
+        const hasError = results.some((r) => r.status === 'error')
+        setPublishResult({
+          ok: !hasError,
+          message: hasError
+            ? 'Erro em uma ou mais plataformas. Verifique e tente novamente.'
+            : mode === 'now'
+            ? 'Post publicado com sucesso!'
+            : 'Post agendado com sucesso!',
+        })
       }
 
-      // Auto-close after short delay on success
       setTimeout(() => {
         setPublishResult(null)
         onClose()
@@ -190,7 +173,6 @@ export function ScheduleDialog({
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
-          {/* No integrations CTA */}
           {!hasIntegrations && (
             <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-sm">
               <Link2 className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
@@ -262,8 +244,8 @@ export function ScheduleDialog({
               <div className="flex flex-wrap gap-2">
                 {integrations.map((integration) => {
                   const active = selectedIntegrationIds.includes(integration.id)
-                  const info = PROVIDERS[integration.providerIdentifier]
-                  const Icon = PROVIDER_ICONS[integration.providerIdentifier] ?? Globe
+                  const info = PROVIDERS[integration.provider]
+                  const Icon = PROVIDER_ICONS[integration.provider] ?? Globe
 
                   return (
                     <button
@@ -275,17 +257,17 @@ export function ScheduleDialog({
                           : 'border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600'
                       }`}
                     >
-                      {integration.picture ? (
+                      {integration.account_picture ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={integration.picture}
-                          alt={integration.name}
+                          src={integration.account_picture}
+                          alt={integration.account_name}
                           className="w-4 h-4 rounded-full object-cover"
                         />
                       ) : (
                         <Icon className={`w-3.5 h-3.5 ${active ? (info?.color ?? '') : ''}`} />
                       )}
-                      <span className="max-w-[100px] truncate">{integration.name}</span>
+                      <span className="max-w-[100px] truncate">{integration.account_name}</span>
                     </button>
                   )
                 })}
@@ -320,7 +302,6 @@ export function ScheduleDialog({
             </div>
           </div>
 
-          {/* Date & time (only for schedule mode) */}
           {mode === 'schedule' && (
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-zinc-400">Data e horario</label>
@@ -333,20 +314,19 @@ export function ScheduleDialog({
             </div>
           )}
 
-          {/* Preview hint */}
           {selectedIntegrationIds.length > 0 && (
             <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
               <p className="text-xs text-zinc-500 mb-2">Pre-visualizacao</p>
               {selectedIntegrationIds.map((id) => {
                 const integration = integrations.find((i) => i.id === id)
                 if (!integration) return null
-                const info = PROVIDERS[integration.providerIdentifier]
-                const Icon = PROVIDER_ICONS[integration.providerIdentifier] ?? Globe
+                const info = PROVIDERS[integration.provider]
+                const Icon = PROVIDER_ICONS[integration.provider] ?? Globe
                 return (
                   <div key={id} className="flex items-start gap-2 mb-2 last:mb-0">
                     <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${info?.color ?? 'text-zinc-400'}`} />
                     <div className="min-w-0">
-                      <p className="text-[10px] text-zinc-500 mb-0.5">{integration.name}</p>
+                      <p className="text-[10px] text-zinc-500 mb-0.5">{integration.account_name}</p>
                       <p className="text-xs text-zinc-400 leading-relaxed">
                         {caption
                           ? caption.slice(0, 100) + (caption.length > 100 ? '…' : '')
@@ -359,7 +339,6 @@ export function ScheduleDialog({
             </div>
           )}
 
-          {/* Result feedback */}
           {publishResult && (
             <div className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm ${
               publishResult.ok
