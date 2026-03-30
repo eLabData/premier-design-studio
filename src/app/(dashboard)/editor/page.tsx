@@ -5,15 +5,17 @@ import { Timeline } from "@/components/editor/Timeline";
 import { Toolbar } from "@/components/editor/Toolbar";
 import { CaptionEditor } from "@/components/editor/CaptionEditor";
 import { ClipProperties } from "@/components/editor/ClipProperties";
+import { AutoEditPanel } from "@/components/editor/AutoEditPanel";
 import { useEditorStore } from "@/lib/stores";
 import { useVideoEditor } from "@/hooks/useVideoEditor";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function EditorPage() {
   const { showCaptionEditor, project } = useEditorStore();
   const { preloadFFmpeg } = useVideoEditor();
+  const [showAutoEdit, setShowAutoEdit] = useState(false);
 
   // Pre-warm FFmpeg WASM in the background
   useEffect(() => {
@@ -41,11 +43,18 @@ export default function EditorPage() {
         )}
       </div>
 
-      {/* Toolbar */}
-      <Toolbar />
+      {/* Toolbar — passes setShowAutoEdit so "IA Legendas" can open the panel */}
+      <Toolbar onOpenAutoEdit={() => setShowAutoEdit(true)} />
 
-      {/* Main area: Preview + Properties/Captions */}
+      {/* Main area: Preview + Panels */}
       <div className="flex flex-1 overflow-hidden">
+        {/* AI Auto-Edit Panel (left drawer, collapsible) */}
+        {showAutoEdit && (
+          <div className="w-80 border-r border-zinc-800 flex-shrink-0 overflow-hidden flex flex-col">
+            <AutoEditPanel onClose={() => setShowAutoEdit(false)} />
+          </div>
+        )}
+
         {/* Preview */}
         <div className="flex-1 flex flex-col p-4 min-w-0">
           <VideoPreview />

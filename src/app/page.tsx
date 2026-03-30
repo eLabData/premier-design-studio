@@ -7,6 +7,7 @@ import {
   Plus,
   Sparkles,
   Palette,
+  BarChart3,
 } from "lucide-react";
 
 const modules = [
@@ -49,6 +50,14 @@ const modules = [
     href: "/library",
     color: "from-amber-500/20 to-amber-600/5",
     borderColor: "border-amber-500/30",
+  },
+  {
+    title: "Analytics",
+    description: "Custos, uso de IA e métricas",
+    icon: BarChart3,
+    href: "/analytics",
+    color: "from-cyan-500/20 to-cyan-600/5",
+    borderColor: "border-cyan-500/30",
   },
 ];
 

@@ -19,6 +19,10 @@ export interface VideoProject extends Project {
   fps: number
   tracks: VideoTrack[]
   captions?: Caption[]
+  transcript?: TranscriptResult
+  editSuggestions?: EditSuggestions
+  brollClips?: BRollResult[]
+  captionStyle?: CaptionStyleName
 }
 
 export interface VideoTrack {
@@ -100,6 +104,68 @@ export interface ScheduledPost {
   hashtags: string[]
   published_urls?: Record<Platform, string>
 }
+
+// ── AI / Auto-Edit types ──────────────────────────────────────────────────────
+
+export interface TranscriptWord {
+  word: string
+  startTime: number // seconds
+  endTime: number
+}
+
+export interface TranscriptSegment {
+  text: string
+  startTime: number
+  endTime: number
+  words?: TranscriptWord[]
+}
+
+export interface TranscriptResult {
+  fullText: string
+  segments: TranscriptSegment[]
+  language: string
+  duration: number
+}
+
+export interface SilenceCut {
+  id: string
+  startTime: number
+  endTime: number
+  type: 'silence' | 'filler'
+  fillerWord?: string
+  accepted: boolean
+}
+
+export interface BRollKeyword {
+  keyword: string
+  startTime: number
+  endTime: number
+  reason: string
+}
+
+export interface EditSuggestions {
+  silenceCuts: SilenceCut[]
+  brollKeywords: BRollKeyword[]
+  summary: string
+  socialCaption: string
+  highlightMoments: { startTime: number; endTime: number; reason: string }[]
+}
+
+export interface BRollResult {
+  id: string
+  keyword: string
+  startTime: number // where to place on timeline
+  endTime: number
+  thumbnailUrl: string
+  videoUrl: string
+  source: 'pexels' | 'pixabay'
+  accepted: boolean
+  selectedUrl?: string
+}
+
+export type CaptionStyleName = 'minimal' | 'bold' | 'karaoke' | 'boxed'
+
+// ── Extended VideoProject ─────────────────────────────────────────────────────
 
 export const PLATFORM_SIZES: Record<Platform, Record<string, { width: number; height: number }>> = {
   instagram: {

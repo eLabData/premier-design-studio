@@ -15,7 +15,11 @@ import { useEditorStore } from "@/lib/stores";
 import { useVideoEditor } from "@/hooks/useVideoEditor";
 import { useRef, useCallback } from "react";
 
-export function Toolbar() {
+interface ToolbarProps {
+  onOpenAutoEdit?: () => void;
+}
+
+export function Toolbar({ onOpenAutoEdit }: ToolbarProps) {
   const {
     zoom,
     setZoom,
@@ -79,13 +83,13 @@ export function Toolbar() {
     [addOverlayVideo, currentTime]
   );
 
-  // ── AI Captions (placeholder) ────────────────────────────────────────────
+  // ── AI Auto-Edit ─────────────────────────────────────────────────────────
 
   const handleAICaptions = useCallback(() => {
-    alert(
-      "IA para legendas: integração com Whisper API em desenvolvimento.\nEm breve disponível!"
-    );
-  }, []);
+    if (onOpenAutoEdit) {
+      onOpenAutoEdit();
+    }
+  }, [onOpenAutoEdit]);
 
   return (
     <>
