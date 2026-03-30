@@ -1,0 +1,45 @@
+name: Deploy Premier Design Studio
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/apps/premier-design-studio || mkdir -p ~/apps/premier-design-studio
+            cd ~/apps/premier-design-studio
+
+            # Clone or pull
+            if [ -d .git ]; then
+              git pull origin main
+            else
+              git clone https://github.com/eLabData/premier-design-studio.git .
+            fi
+
+            # Write env file
+            cat > .env.production << 'ENVEOF'
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_OPENROUTER_API_KEY=${{ secrets.NEXT_PUBLIC_OPENROUTER_API_KEY }}
+            NEXT_PUBLIC_APP_URL=https://studio.elabdata.com.br
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            PEXELS_API_KEY=${{ secrets.PEXELS_API_KEY }}
+            ENVEOF
+
+            # Build and restart
+            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build --remove-orphans
+
+            # Cleanup
+            docker image prune -f
