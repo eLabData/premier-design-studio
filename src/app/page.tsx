@@ -6,6 +6,7 @@ import {
   FolderOpen,
   Plus,
   Sparkles,
+  Palette,
 } from "lucide-react";
 
 const modules = [
@@ -24,6 +25,14 @@ const modules = [
     href: "/designer",
     color: "from-purple-500/20 to-purple-600/5",
     borderColor: "border-purple-500/30",
+  },
+  {
+    title: "Studio AI",
+    description: "Logos, mockups, assets com IA",
+    icon: Palette,
+    href: "/studio",
+    color: "from-pink-500/20 to-pink-600/5",
+    borderColor: "border-pink-500/30",
   },
   {
     title: "Agendador",
