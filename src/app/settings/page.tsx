@@ -12,7 +12,10 @@ import {
   LogOut,
   CheckCircle2,
   XCircle,
+  Share2,
+  ChevronRight,
 } from 'lucide-react'
+import Link from 'next/link'
 import { useAuthStore } from '@/lib/auth-store'
 import { createSupabaseBrowser } from '@/lib/supabase-browser'
 
@@ -247,6 +250,26 @@ function SettingsContent() {
               )}
             </div>
           </div>
+        </section>
+
+        {/* Social connections section */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Share2 className="w-4 h-4 text-zinc-400" />
+            <h2 className="text-base font-semibold text-zinc-100">Redes Sociais</h2>
+          </div>
+          <Link
+            href="/settings/connections"
+            className="flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors group"
+          >
+            <div>
+              <p className="text-sm font-medium text-zinc-200">Conexoes de Redes Sociais</p>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Gerencie contas conectadas do Instagram, YouTube, TikTok e mais.
+              </p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-colors shrink-0" />
+          </Link>
         </section>
 
         {/* Plans section */}

@@ -2,8 +2,23 @@
 
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Camera, Globe, Tv, Music, AtSign, Pencil, Clock, X, Zap } from 'lucide-react'
-import type { ScheduledPost, Platform } from '@/types/project'
+import {
+  Camera,
+  Globe,
+  Tv,
+  Music,
+  AtSign,
+  Briefcase,
+  MessageCircle,
+  Cloud,
+  Pin,
+  Pencil,
+  Clock,
+  X,
+  Zap,
+} from 'lucide-react'
+import type { ScheduledPost } from '@/types/project'
+import { PROVIDERS, type PostizIntegration } from '@/lib/postiz'
 
 interface Props {
   posts: ScheduledPost[]
@@ -11,36 +26,33 @@ interface Props {
   onReschedule?: (id: string) => void
   onCancel?: (id: string) => void
   onPublishNow?: (id: string) => void
+  integrations?: PostizIntegration[]
 }
 
-const PLATFORM_ICONS: Record<Platform, React.ComponentType<{ className?: string }>> = {
-  instagram: Camera,
-  facebook: Globe,
-  youtube: Tv,
-  tiktok: Music,
-  x: AtSign,
-}
-
-const PLATFORM_COLORS: Record<Platform, string> = {
-  instagram: 'text-pink-400',
-  facebook: 'text-blue-400',
-  youtube: 'text-red-400',
-  tiktok: 'text-cyan-400',
-  x: 'text-zinc-200',
+const PROVIDER_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  instagram:  Camera,
+  facebook:   Globe,
+  youtube:    Tv,
+  tiktok:     Music,
+  x:          AtSign,
+  linkedin:   Briefcase,
+  threads:    MessageCircle,
+  pinterest:  Pin,
+  bluesky:    Cloud,
 }
 
 const STATUS_BADGES: Record<ScheduledPost['status'], { label: string; class: string }> = {
-  scheduled: { label: 'Agendado', class: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
+  scheduled:  { label: 'Agendado',    class: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
   publishing: { label: 'Publicando…', class: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
-  published: { label: 'Publicado', class: 'bg-green-500/15 text-green-400 border-green-500/30' },
-  failed: { label: 'Falhou', class: 'bg-red-500/15 text-red-400 border-red-500/30' },
+  published:  { label: 'Publicado',   class: 'bg-green-500/15 text-green-400 border-green-500/30' },
+  failed:     { label: 'Falhou',      class: 'bg-red-500/15 text-red-400 border-red-500/30' },
 }
 
-export function PostQueue({ posts, onEdit, onReschedule, onCancel, onPublishNow }: Props) {
+export function PostQueue({ posts, onEdit, onReschedule, onCancel, onPublishNow, integrations = [] }: Props) {
   if (posts.length === 0) {
     return (
       <div className="py-12 text-center text-zinc-600 text-sm">
-        Nenhuma publicação agendada.
+        Nenhuma publicacao agendada.
       </div>
     )
   }
@@ -48,6 +60,12 @@ export function PostQueue({ posts, onEdit, onReschedule, onCancel, onPublishNow 
   const sorted = [...posts].sort(
     (a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime(),
   )
+
+  // Build a map from providerIdentifier -> integration for quick lookup
+  const integrationByProvider = integrations.reduce<Record<string, PostizIntegration>>((acc, i) => {
+    if (!acc[i.providerIdentifier]) acc[i.providerIdentifier] = i
+    return acc
+  }, {})
 
   return (
     <div className="space-y-2">
@@ -72,18 +90,38 @@ export function PostQueue({ posts, onEdit, onReschedule, onCancel, onPublishNow 
               </span>
             </div>
 
-            {/* Platforms */}
-            <div className="flex items-center gap-1.5">
+            {/* Platforms / integrations */}
+            <div className="flex items-center gap-1.5 flex-wrap">
               {post.platforms.map((platform) => {
-                const Icon = PLATFORM_ICONS[platform]
-                return <Icon key={platform} className={`w-3.5 h-3.5 ${PLATFORM_COLORS[platform]}`} />
+                const integration = integrationByProvider[platform]
+                const info = PROVIDERS[platform]
+                const Icon = PROVIDER_ICONS[platform] ?? Globe
+
+                if (integration?.picture) {
+                  return (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={platform}
+                      src={integration.picture}
+                      alt={integration.name}
+                      title={integration.name}
+                      className="w-4 h-4 rounded-full border border-zinc-700 object-cover"
+                    />
+                  )
+                }
+
+                return (
+                  <span key={platform} title={info?.name ?? platform}>
+                    <Icon className={`w-3.5 h-3.5 ${info?.color ?? 'text-zinc-400'}`} />
+                  </span>
+                )
               })}
             </div>
 
             {/* Date */}
             <div className="flex items-center gap-1 text-[11px] text-zinc-500">
               <Clock className="w-3 h-3" />
-              {format(scheduledDate, "d 'de' MMM 'às' HH:mm", { locale: ptBR })}
+              {format(scheduledDate, "d 'de' MMM 'as' HH:mm", { locale: ptBR })}
             </div>
 
             {/* Actions */}

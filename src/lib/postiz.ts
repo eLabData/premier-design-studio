@@ -5,39 +5,15 @@
  */
 
 const POSTIZ_URL = process.env.NEXT_PUBLIC_POSTIZ_URL || 'https://social.elabdata.com.br'
-const POSTIZ_API_KEY = process.env.POSTIZ_API_KEY || ''
 
-interface PostizPost {
-  type: 'now' | 'schedule' | 'draft'
-  date?: string // ISO 8601 for scheduled posts
-  posts: PostizPostItem[]
-}
+export const POSTIZ_API_KEY_STORAGE = 'pds_postiz_api_key'
 
-interface PostizPostItem {
-  content: string
-  integration: string // integration ID from Postiz
-  media?: PostizMedia[]
-}
-
-interface PostizMedia {
-  url: string
-  type: 'image' | 'video'
-}
-
-interface PostizIntegration {
-  id: string
-  name: string
-  picture: string
-  provider: string // 'facebook', 'instagram', 'youtube', 'tiktok', 'x', etc
-  disabled: boolean
-}
-
-async function postizFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
+async function postizFetch<T>(endpoint: string, apiKey: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${POSTIZ_URL}/api/public/v1${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': POSTIZ_API_KEY,
+      'Authorization': apiKey,
       ...options?.headers,
     },
   })
@@ -50,80 +26,129 @@ async function postizFetch<T>(endpoint: string, options?: RequestInit): Promise<
   return res.json()
 }
 
-/**
- * List all connected social media integrations
- */
-export async function getIntegrations(): Promise<PostizIntegration[]> {
-  return postizFetch<PostizIntegration[]>('/integrations')
+// === Integrations ============================================================
+
+export interface PostizIntegration {
+  id: string
+  name: string
+  picture?: string
+  providerIdentifier: string // 'instagram' | 'facebook' | 'x' | 'youtube' | 'tiktok' | 'linkedin' | 'threads' | ...
+  disabled: boolean
+  internalId: string
+  profile?: string
 }
 
-/**
- * Publish a post immediately to selected integrations
- */
-export async function publishNow(content: string, integrationIds: string[], media?: PostizMedia[]): Promise<unknown> {
-  return postizFetch('/posts', {
+export async function getIntegrations(apiKey: string): Promise<PostizIntegration[]> {
+  return postizFetch<PostizIntegration[]>('/integrations', apiKey)
+}
+
+export async function getOAuthUrl(apiKey: string, provider: string): Promise<{ url: string }> {
+  return postizFetch<{ url: string }>(`/integrations/oauth/${provider}`, apiKey)
+}
+
+// === Posts ===================================================================
+
+export interface PostizPost {
+  id: string
+  content: string
+  state: 'QUEUE' | 'PUBLISHED' | 'ERROR' | 'DRAFT'
+  publishDate: string
+  releaseURL?: string
+  error?: string
+  integration: PostizIntegration
+}
+
+export interface CreatePostParams {
+  integrationId: string
+  content: string
+  publishDate?: string // ISO 8601 — omit for immediate publish
+  type?: 'default' | 'draft'
+  image?: { path: string }[]
+  settings?: Record<string, unknown>
+}
+
+interface PostizCreatePayload {
+  type: 'now' | 'schedule' | 'draft'
+  date?: string
+  posts: {
+    content: string
+    integration: string
+    image?: { path: string }[]
+    settings?: Record<string, unknown>
+  }[]
+}
+
+export async function getPosts(apiKey: string): Promise<PostizPost[]> {
+  return postizFetch<PostizPost[]>('/posts', apiKey)
+}
+
+export async function createPost(apiKey: string, params: CreatePostParams): Promise<PostizPost> {
+  const postType: 'now' | 'schedule' | 'draft' = params.type === 'draft'
+    ? 'draft'
+    : params.publishDate
+    ? 'schedule'
+    : 'now'
+
+  const payload: PostizCreatePayload = {
+    type: postType,
+    ...(params.publishDate ? { date: params.publishDate } : {}),
+    posts: [
+      {
+        content: params.content,
+        integration: params.integrationId,
+        ...(params.image ? { image: params.image } : {}),
+        ...(params.settings ? { settings: params.settings } : {}),
+      },
+    ],
+  }
+
+  return postizFetch<PostizPost>('/posts', apiKey, {
     method: 'POST',
-    body: JSON.stringify({
-      type: 'now',
-      posts: integrationIds.map((id) => ({
-        content,
-        integration: id,
-        media,
-      })),
-    } satisfies PostizPost),
+    body: JSON.stringify(payload),
   })
 }
 
-/**
- * Schedule a post for a future date
- */
-export async function schedulePost(
-  content: string,
-  integrationIds: string[],
-  scheduledDate: Date,
-  media?: PostizMedia[]
-): Promise<unknown> {
-  return postizFetch('/posts', {
+export async function deletePost(apiKey: string, postId: string): Promise<void> {
+  await postizFetch<unknown>(`/posts/${postId}`, apiKey, { method: 'DELETE' })
+}
+
+// === Media ===================================================================
+
+export async function uploadMedia(apiKey: string, file: File): Promise<{ path: string }> {
+  const form = new FormData()
+  form.append('file', file)
+
+  const res = await fetch(`${POSTIZ_URL}/api/public/v1/media`, {
     method: 'POST',
-    body: JSON.stringify({
-      type: 'schedule',
-      date: scheduledDate.toISOString(),
-      posts: integrationIds.map((id) => ({
-        content,
-        integration: id,
-        media,
-      })),
-    } satisfies PostizPost),
+    headers: { Authorization: apiKey },
+    body: form,
+  })
+
+  if (!res.ok) {
+    const error = await res.text()
+    throw new Error(`Postiz media upload error (${res.status}): ${error}`)
+  }
+
+  return res.json()
+}
+
+export async function uploadMediaFromUrl(apiKey: string, url: string): Promise<{ path: string }> {
+  return postizFetch<{ path: string }>('/media/url', apiKey, {
+    method: 'POST',
+    body: JSON.stringify({ url }),
   })
 }
 
-/**
- * Save a draft post
- */
-export async function saveDraft(content: string, integrationIds: string[], media?: PostizMedia[]): Promise<unknown> {
-  return postizFetch('/posts', {
-    method: 'POST',
-    body: JSON.stringify({
-      type: 'draft',
-      posts: integrationIds.map((id) => ({
-        content,
-        integration: id,
-        media,
-      })),
-    } satisfies PostizPost),
-  })
-}
+// === Provider display info ===================================================
 
-/**
- * Map platform names to Postiz provider names
- */
-export const PLATFORM_TO_PROVIDER: Record<string, string> = {
-  instagram: 'instagram',
-  facebook: 'facebook',
-  youtube: 'youtube',
-  tiktok: 'tiktok',
-  x: 'x',
-  linkedin: 'linkedin',
-  threads: 'threads',
-  pinterest: 'pinterest',
+export const PROVIDERS: Record<string, { name: string; color: string; icon: string }> = {
+  instagram:  { name: 'Instagram', color: 'text-pink-500',   icon: 'Camera'        },
+  facebook:   { name: 'Facebook',  color: 'text-blue-500',   icon: 'Globe'         },
+  youtube:    { name: 'YouTube',   color: 'text-red-500',    icon: 'Tv'            },
+  tiktok:     { name: 'TikTok',   color: 'text-cyan-400',   icon: 'Music'         },
+  x:          { name: 'X',        color: 'text-white',      icon: 'AtSign'        },
+  linkedin:   { name: 'LinkedIn', color: 'text-blue-400',   icon: 'Briefcase'     },
+  threads:    { name: 'Threads',  color: 'text-zinc-300',   icon: 'MessageCircle' },
+  pinterest:  { name: 'Pinterest',color: 'text-red-400',    icon: 'Pin'           },
+  bluesky:    { name: 'Bluesky',  color: 'text-sky-400',    icon: 'Cloud'         },
 }
