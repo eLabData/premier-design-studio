@@ -170,12 +170,25 @@ export default function Home() {
               </span>
             </p>
           </div>
-          <Link
-            href="/settings"
-            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-lg"
-          >
-            Configurações
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/settings"
+              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-lg"
+            >
+              Configurações
+            </Link>
+            <button
+              onClick={async () => {
+                const { createSupabaseBrowser } = await import('@/lib/supabase-browser')
+                const supabase = createSupabaseBrowser()
+                await supabase.auth.signOut()
+                window.location.href = '/login'
+              }}
+              className="text-xs text-zinc-500 hover:text-red-400 transition-colors border border-zinc-800 hover:border-red-500/30 px-3 py-1.5 rounded-lg"
+            >
+              Sair
+            </button>
+          </div>
         </div>
 
         {/* Module Cards */}
