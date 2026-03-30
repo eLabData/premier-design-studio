@@ -36,6 +36,16 @@ jobs:
             SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             PEXELS_API_KEY=${{ secrets.PEXELS_API_KEY }}
+            YOUTUBE_CLIENT_ID=${{ secrets.YOUTUBE_CLIENT_ID }}
+            YOUTUBE_CLIENT_SECRET=${{ secrets.YOUTUBE_CLIENT_SECRET }}
+            FACEBOOK_APP_ID=${{ secrets.FACEBOOK_APP_ID }}
+            FACEBOOK_APP_SECRET=${{ secrets.FACEBOOK_APP_SECRET }}
+            X_API_KEY=${{ secrets.X_API_KEY }}
+            X_API_SECRET=${{ secrets.X_API_SECRET }}
+            TIKTOK_CLIENT_ID=${{ secrets.TIKTOK_CLIENT_ID }}
+            TIKTOK_CLIENT_SECRET=${{ secrets.TIKTOK_CLIENT_SECRET }}
+            LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}
+            LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }}
             ENVEOF
 
             # Build and restart
