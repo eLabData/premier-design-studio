@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { getProvider } from '@/lib/social'
 
 interface PublishRequestBody {
@@ -27,10 +28,11 @@ export async function POST(req: Request) {
 
   const { integrationIds, content, media, scheduledAt, projectId } = await req.json() as PublishRequestBody
 
+  const admin = createSupabaseAdmin()
   const results = []
 
   for (const integrationId of integrationIds) {
-    const { data: integration } = await supabase
+    const { data: integration } = await admin
       .from('social_integrations')
       .select('*')
       .eq('id', integrationId)
@@ -45,7 +47,7 @@ export async function POST(req: Request) {
     const row = integration as IntegrationRow
 
     if (scheduledAt) {
-      const { data: post } = await supabase.from('social_posts').insert({
+      const { data: post } = await admin.from('social_posts').insert({
         user_id: user.id,
         project_id: projectId,
         integration_id: integrationId,
@@ -68,7 +70,7 @@ export async function POST(req: Request) {
         if (row.refresh_token) {
           const refreshed = await provider.refreshToken(row.refresh_token)
           accessToken = refreshed.accessToken
-          await supabase.from('social_integrations').update({
+          await admin.from('social_integrations').update({
             access_token: refreshed.accessToken,
             refresh_token: refreshed.refreshToken || row.refresh_token,
             token_expires_at: refreshed.expiresIn
@@ -77,7 +79,7 @@ export async function POST(req: Request) {
             refresh_needed: false,
           }).eq('id', integrationId)
         } else {
-          await supabase.from('social_integrations').update({ refresh_needed: true }).eq('id', integrationId)
+          await admin.from('social_integrations').update({ refresh_needed: true }).eq('id', integrationId)
           results.push({ integrationId, error: 'Token expirado, reconecte a conta' })
           continue
         }
@@ -90,7 +92,7 @@ export async function POST(req: Request) {
       )
 
       for (const pr of postResults) {
-        await supabase.from('social_posts').insert({
+        await admin.from('social_posts').insert({
           user_id: user.id,
           project_id: projectId,
           integration_id: integrationId,
@@ -107,7 +109,7 @@ export async function POST(req: Request) {
       results.push({ integrationId, ...postResults[0] })
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Erro ao publicar'
-      await supabase.from('social_posts').insert({
+      await admin.from('social_posts').insert({
         user_id: user.id,
         project_id: projectId,
         integration_id: integrationId,

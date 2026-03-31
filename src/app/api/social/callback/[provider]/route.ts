@@ -1,4 +1,4 @@
-import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { getProvider } from '@/lib/social'
 
 export async function GET(req: Request, { params }: { params: Promise<{ provider: string }> }) {
@@ -12,18 +12,26 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     return new Response('<script>window.close()</script>', { headers: { 'Content-Type': 'text/html' } })
   }
 
-  const supabase = await createSupabaseServer()
+  // Use admin client to bypass RLS
+  const admin = createSupabaseAdmin()
 
   const stateKey = state || oauthToken
-  const { data: oauthState } = await supabase
+  const { data: oauthState, error: stateError } = await admin
     .from('oauth_states')
     .select('*')
     .eq('state', stateKey)
     .single()
 
-  if (!oauthState) {
+  if (!oauthState || stateError) {
+    console.error('OAuth state lookup failed:', stateError)
     return new Response(
-      '<script>alert("Estado OAuth invalido");window.close()</script>',
+      `<html><body style="background:#09090b;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh">
+        <div style="text-align:center">
+          <h2>&#10007; Estado OAuth invalido</h2>
+          <p>O link expirou ou ja foi usado. Tente conectar novamente.</p>
+          <button onclick="window.close()" style="margin-top:16px;padding:8px 24px;background:#22c55e;border:none;border-radius:8px;color:#fff;cursor:pointer">Fechar</button>
+        </div>
+      </body></html>`,
       { headers: { 'Content-Type': 'text/html' } }
     )
   }
@@ -38,7 +46,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
       redirectUrl: oauthState.redirect_url,
     })
 
-    await supabase.from('social_integrations').upsert({
+    // Save integration
+    const { error: upsertError } = await admin.from('social_integrations').upsert({
       user_id: oauthState.user_id,
       provider: providerName,
       provider_account_id: tokens.id,
@@ -56,7 +65,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
       refresh_needed: false,
     }, { onConflict: 'user_id,provider,provider_account_id' })
 
-    await supabase.from('oauth_states').delete().eq('state', stateKey)
+    if (upsertError) console.error('Upsert integration error:', upsertError)
+
+    // Cleanup state
+    await admin.from('oauth_states').delete().eq('state', stateKey)
 
     return new Response(
       `<html><body style="background:#09090b;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh">
@@ -70,6 +82,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     )
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('OAuth callback error:', msg)
     return new Response(
       `<html><body style="background:#09090b;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh">
         <div style="text-align:center">
