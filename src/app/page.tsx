@@ -192,9 +192,14 @@ export default function Home() {
             </Link>
             <button
               onClick={async () => {
-                const { createSupabaseBrowser } = await import('@/lib/supabase-browser')
-                const supabase = createSupabaseBrowser()
-                await supabase.auth.signOut()
+                try {
+                  const { createSupabaseBrowser } = await import('@/lib/supabase-browser')
+                  await createSupabaseBrowser().auth.signOut()
+                } catch {}
+                await fetch('/api/auth/logout', { method: 'POST' })
+                document.cookie.split(';').forEach(c => {
+                  document.cookie = c.trim().split('=')[0] + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/'
+                })
                 window.location.href = '/login'
               }}
               className="text-xs text-zinc-500 hover:text-red-400 transition-colors border border-zinc-800 hover:border-red-500/30 px-3 py-1.5 rounded-lg"
