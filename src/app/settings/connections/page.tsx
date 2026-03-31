@@ -127,13 +127,23 @@ function ProviderCard({
       )}
 
       {isConnected ? (
-        <button
-          onClick={() => onDisconnect(connectedId!)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-500/40 text-xs transition-colors"
-        >
-          <Trash2 className="w-3 h-3" />
-          Desconectar
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onConnect(provider)}
+            disabled={connecting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 text-xs transition-colors"
+            title="Trocar conta/canal"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Trocar
+          </button>
+          <button
+            onClick={() => onDisconnect(connectedId!)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-500/40 text-xs transition-colors"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </div>
       ) : (
         <button
           onClick={() => onConnect(provider)}
