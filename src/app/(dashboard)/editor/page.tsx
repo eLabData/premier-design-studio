@@ -9,14 +9,18 @@ import { AutoEditPanel } from "@/components/editor/AutoEditPanel";
 import { useEditorStore } from "@/lib/stores";
 import { useVideoEditor } from "@/hooks/useVideoEditor";
 import Link from "next/link";
-import { ArrowLeft, PanelRight, X } from "lucide-react";
+import { ArrowLeft, PanelRight, X, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { AIChatPanel } from "@/components/ai/AIChatPanel";
 
 export default function EditorPage() {
   const { showCaptionEditor, project } = useEditorStore();
   const { preloadFFmpeg } = useVideoEditor();
   const [showAutoEdit, setShowAutoEdit] = useState(false);
   const [showMobilePanel, setShowMobilePanel] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
+  // Right panel tab: 'props' | 'chat'
+  const [rightTab, setRightTab] = useState<'props' | 'chat'>('props');
 
   // Pre-warm FFmpeg WASM in the background
   useEffect(() => {
@@ -42,6 +46,19 @@ export default function EditorPage() {
             {formatDuration(project.duration)}
           </span>
         )}
+        {/* Desktop: toggle AI chat */}
+        <button
+          onClick={() => { setShowAIChat((v) => !v); setRightTab('chat'); setShowMobilePanel(true); }}
+          className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
+            rightTab === 'chat' && showMobilePanel
+              ? 'bg-green-500/20 border-green-500/40 text-green-400'
+              : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-white'
+          }`}
+          title="Chat IA"
+        >
+          <MessageCircle className="w-4 h-4" />
+          <span className="hidden sm:inline">Chat IA</span>
+        </button>
         {/* Mobile: toggle right panel */}
         <button
           onClick={() => setShowMobilePanel((v) => !v)}
@@ -70,22 +87,46 @@ export default function EditorPage() {
         </div>
 
         {/* Right panel: Caption editor or Clip properties — hidden on mobile unless toggled */}
-        <div className={`${showMobilePanel ? 'flex' : 'hidden'} md:flex w-full md:w-72 absolute md:relative inset-0 md:inset-auto z-30 md:z-auto border-l border-zinc-800 overflow-y-auto flex-shrink-0 bg-zinc-950 flex-col`}>
-          {showCaptionEditor ? (
-            <CaptionEditor />
+        <div className={`${showMobilePanel ? 'flex' : 'hidden'} md:flex w-full md:w-72 absolute md:relative inset-0 md:inset-auto z-30 md:z-auto border-l border-zinc-800 flex-shrink-0 bg-zinc-950 flex-col overflow-hidden`}>
+          {/* Tab bar */}
+          <div className="flex items-center border-b border-zinc-800 shrink-0">
+            <button
+              onClick={() => setRightTab('props')}
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                rightTab === 'props'
+                  ? 'text-white border-b-2 border-green-500'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Propriedades
+            </button>
+            <button
+              onClick={() => setRightTab('chat')}
+              className={`flex-1 py-2 text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
+                rightTab === 'chat'
+                  ? 'text-white border-b-2 border-green-500'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <MessageCircle className="w-3 h-3" />
+              Chat IA
+            </button>
+            <button
+              onClick={() => setShowMobilePanel(false)}
+              className="md:hidden px-3 text-zinc-500 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {rightTab === 'chat' ? (
+            <AIChatPanel context="video" inline className="flex-1" />
+          ) : showCaptionEditor ? (
+            <div className="flex-1 overflow-y-auto">
+              <CaptionEditor />
+            </div>
           ) : (
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
-                  Propriedades
-                </h2>
-                <button
-                  onClick={() => setShowMobilePanel(false)}
-                  className="md:hidden text-zinc-500 hover:text-white transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+            <div className="p-4 flex-1 overflow-y-auto">
               <ClipProperties />
             </div>
           )}

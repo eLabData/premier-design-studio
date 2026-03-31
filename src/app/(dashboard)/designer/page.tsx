@@ -17,6 +17,7 @@ import {
   Save,
   PanelRight,
   X,
+  MessageCircle,
 } from 'lucide-react'
 import { FormatSelector } from '@/components/designer/FormatSelector'
 import { ElementProperties } from '@/components/designer/ElementProperties'
@@ -24,6 +25,7 @@ import { TemplateGallery, type Template } from '@/components/designer/TemplateGa
 import type { Platform } from '@/types/project'
 import type { useCanvasEditor, ElementProps } from '@/hooks/useCanvasEditor'
 import { saveProject } from '@/lib/storage'
+import { AIChatPanel } from '@/components/ai/AIChatPanel'
 
 // Canvas must be loaded client-only (Fabric.js uses browser APIs)
 const CanvasWorkspace = dynamic(
@@ -44,6 +46,7 @@ const TOOLS = [
 
 export default function DesignerPage() {
   const [showMobileRight, setShowMobileRight] = useState(false)
+  const [rightTab, setRightTab] = useState<'props' | 'chat'>('props')
   const [activePanel, setActivePanel] = useState<ToolPanel>(null)
   const [canvasWidth, setCanvasWidth] = useState(1080)
   const [canvasHeight, setCanvasHeight] = useState(1080)
@@ -172,6 +175,19 @@ export default function DesignerPage() {
         <span className="hidden sm:block text-xs text-zinc-600">
           {canvasWidth}×{canvasHeight}
         </span>
+        {/* Desktop: Chat IA toggle */}
+        <button
+          onClick={() => { setRightTab('chat'); setShowMobileRight(true) }}
+          className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
+            rightTab === 'chat'
+              ? 'bg-green-500/20 border-green-500/40 text-green-400'
+              : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-white'
+          }`}
+          title="Chat IA"
+        >
+          <MessageCircle className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Chat IA</span>
+        </button>
         {/* Mobile: toggle right panel */}
         <button
           onClick={() => setShowMobileRight((v) => !v)}
@@ -362,29 +378,60 @@ export default function DesignerPage() {
         />
 
         {/* Right sidebar: Format selector + Properties — overlay on mobile */}
-        <div className={`${showMobileRight ? 'flex' : 'hidden'} md:flex absolute md:relative inset-0 md:inset-auto z-20 md:z-auto w-full md:w-64 shrink-0 border-l border-zinc-800 overflow-y-auto bg-zinc-950 flex-col`}>
-          <div className="p-4 border-b border-zinc-800">
-            <div className="flex items-center justify-between mb-3 md:hidden">
-              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Formato e Propriedades</span>
-              <button onClick={() => setShowMobileRight(false)} className="text-zinc-500 hover:text-white">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <FormatSelector
-              selectedPlatform={selectedPlatform}
-              selectedFormat={selectedFormat}
-              onSelect={handleFormatSelect}
-            />
+        <div className={`${showMobileRight ? 'flex' : 'hidden'} md:flex absolute md:relative inset-0 md:inset-auto z-20 md:z-auto w-full md:w-64 shrink-0 border-l border-zinc-800 bg-zinc-950 flex-col overflow-hidden`}>
+          {/* Tab bar */}
+          <div className="flex items-center border-b border-zinc-800 shrink-0">
+            <button
+              onClick={() => setRightTab('props')}
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                rightTab === 'props'
+                  ? 'text-white border-b-2 border-green-500'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Propriedades
+            </button>
+            <button
+              onClick={() => setRightTab('chat')}
+              className={`flex-1 py-2 text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
+                rightTab === 'chat'
+                  ? 'text-white border-b-2 border-green-500'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <MessageCircle className="w-3 h-3" />
+              Chat IA
+            </button>
+            <button
+              onClick={() => setShowMobileRight(false)}
+              className="md:hidden px-3 text-zinc-500 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          {selectedElement && (
-            <div className="p-4">
-              <ElementProperties
-                element={selectedElement}
-                onUpdate={handleUpdateElement}
-                onBringForward={() => editorRef.current?.bringForward()}
-                onSendBackward={() => editorRef.current?.sendBackward()}
-                onRemove={() => { editorRef.current?.removeSelected(); setSelectedElement(null) }}
-              />
+
+          {rightTab === 'chat' ? (
+            <AIChatPanel context="designer" inline className="flex-1" />
+          ) : (
+            <div className="flex-1 overflow-y-auto flex flex-col">
+              <div className="p-4 border-b border-zinc-800">
+                <FormatSelector
+                  selectedPlatform={selectedPlatform}
+                  selectedFormat={selectedFormat}
+                  onSelect={handleFormatSelect}
+                />
+              </div>
+              {selectedElement && (
+                <div className="p-4">
+                  <ElementProperties
+                    element={selectedElement}
+                    onUpdate={handleUpdateElement}
+                    onBringForward={() => editorRef.current?.bringForward()}
+                    onSendBackward={() => editorRef.current?.sendBackward()}
+                    onRemove={() => { editorRef.current?.removeSelected(); setSelectedElement(null) }}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -12,6 +12,7 @@ import {
   Crown,
   LogIn,
   ArrowRight,
+  Camera,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 
@@ -33,6 +34,16 @@ const modules = [
     href: "/designer",
     color: "from-purple-500/20 to-purple-600/5",
     borderColor: "border-purple-500/30",
+    module: "designer",
+    pro: false,
+  },
+  {
+    title: "Editor de Fotos",
+    description: "Filtros, ajustes, chat com IA",
+    icon: Camera,
+    href: "/photos",
+    color: "from-orange-500/20 to-orange-600/5",
+    borderColor: "border-orange-500/30",
     module: "designer",
     pro: false,
   },

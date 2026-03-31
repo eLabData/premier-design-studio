@@ -15,6 +15,7 @@ import {
   Crown,
   Menu,
   X,
+  Camera,
 } from 'lucide-react'
 import { VERSION } from '@/lib/version'
 import { useAuthStore } from '@/lib/auth-store'
@@ -23,6 +24,7 @@ import { createSupabaseBrowser } from '@/lib/supabase-browser'
 const NAV_ITEMS = [
   { href: '/editor', label: 'Editor de Vídeo', icon: Video, module: 'editor', pro: false },
   { href: '/designer', label: 'Designer', icon: Image, module: 'designer', pro: false },
+  { href: '/photos', label: 'Editor de Fotos', icon: Camera, module: 'designer', pro: false },
   { href: '/studio', label: 'Studio AI', icon: Palette, module: 'studio', pro: true },
   { href: '/scheduler', label: 'Agendador', icon: Calendar, module: 'scheduler', pro: true },
   { href: '/library', label: 'Biblioteca', icon: FolderOpen, module: 'library', pro: false },
