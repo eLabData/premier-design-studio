@@ -37,6 +37,8 @@ const PROVIDER_ICONS: Record<string, React.ComponentType<{ className?: string }>
   bluesky:    Cloud,
 }
 
+type MobileTab = 'plataformas' | 'calendario' | 'fila'
+
 export default function SchedulerPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
@@ -44,6 +46,7 @@ export default function SchedulerPage() {
   const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([])
   const [projects, setProjects] = useState<PostProject[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [mobileTab, setMobileTab] = useState<MobileTab>('calendario')
 
   const { integrations, loading: integrationsLoading } = useSocial()
   const isConnected = integrations.length > 0
@@ -106,9 +109,30 @@ export default function SchedulerPage() {
         </button>
       </div>
 
+      {/* Mobile tabs */}
+      <div className="md:hidden flex border-b border-zinc-800 shrink-0">
+        {([
+          { id: 'plataformas', label: 'Plataformas' },
+          { id: 'calendario', label: 'Calendário' },
+          { id: 'fila', label: 'Fila' },
+        ] as { id: MobileTab; label: string }[]).map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setMobileTab(tab.id)}
+            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+              mobileTab === tab.id
+                ? 'text-green-400 border-b-2 border-green-500'
+                : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-1 overflow-hidden">
-        {/* Integrations sidebar */}
-        <div className="w-56 shrink-0 border-r border-zinc-800 p-4 overflow-y-auto">
+        {/* Integrations sidebar — always on md+, shown as tab on mobile */}
+        <div className={`${mobileTab === 'plataformas' ? 'flex' : 'hidden'} md:flex w-full md:w-56 shrink-0 border-r border-zinc-800 p-4 overflow-y-auto flex-col`}>
           <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
             Contas conectadas
           </h2>
@@ -207,8 +231,8 @@ export default function SchedulerPage() {
           )}
         </div>
 
-        {/* Calendar */}
-        <div className="flex-1 p-6 overflow-hidden">
+        {/* Calendar — hidden on mobile unless calendar tab active */}
+        <div className={`${mobileTab === 'calendario' ? 'flex' : 'hidden'} md:flex flex-1 p-3 md:p-6 overflow-hidden flex-col`}>
           <CalendarView
             currentMonth={currentMonth}
             scheduledPosts={scheduledPosts}
@@ -218,8 +242,8 @@ export default function SchedulerPage() {
           />
         </div>
 
-        {/* Queue */}
-        <div className="w-72 shrink-0 border-l border-zinc-800 flex flex-col">
+        {/* Queue — hidden on mobile unless fila tab active */}
+        <div className={`${mobileTab === 'fila' ? 'flex' : 'hidden'} md:flex w-full md:w-72 shrink-0 border-l border-zinc-800 flex-col`}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
             <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
               Fila de Publicacao

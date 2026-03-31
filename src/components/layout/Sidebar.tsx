@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -12,6 +13,8 @@ import {
   LogOut,
   Sparkles,
   Crown,
+  Menu,
+  X,
 } from 'lucide-react'
 import { VERSION } from '@/lib/version'
 import { useAuthStore } from '@/lib/auth-store'
@@ -38,7 +41,11 @@ const PLAN_COLORS: Record<string, string> = {
   business: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
 }
 
-export function Sidebar() {
+function SidebarContent({
+  onNavClick,
+}: {
+  onNavClick?: () => void
+}) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, profile, setUser, setProfile } = useAuthStore()
@@ -56,11 +63,22 @@ export function Sidebar() {
   return (
     <aside className="w-56 shrink-0 flex flex-col h-full border-r border-zinc-800 bg-zinc-950">
       {/* Brand */}
-      <div className="flex items-center gap-2.5 px-4 py-4 border-b border-zinc-800">
-        <Sparkles className="w-5 h-5 text-green-500" />
-        <span className="font-semibold text-sm text-zinc-100 leading-tight">
-          Premier Design
-        </span>
+      <div className="flex items-center justify-between gap-2.5 px-4 py-4 border-b border-zinc-800">
+        <div className="flex items-center gap-2.5">
+          <Sparkles className="w-5 h-5 text-green-500 shrink-0" />
+          <span className="font-semibold text-sm text-zinc-100 leading-tight">
+            Premier Design
+          </span>
+        </div>
+        {onNavClick && (
+          <button
+            onClick={onNavClick}
+            className="md:hidden text-zinc-400 hover:text-white transition-colors p-1"
+            aria-label="Fechar menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* User info */}
@@ -106,7 +124,8 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors mb-0.5 ${
+              onClick={onNavClick}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors mb-0.5 min-h-[44px] ${
                 isActive
                   ? 'bg-green-500/15 text-green-400 border border-green-500/20'
                   : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
@@ -126,7 +145,8 @@ export function Sidebar() {
       <div className="border-t border-zinc-800 px-2 py-2 space-y-0.5">
         <Link
           href="/settings"
-          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+          onClick={onNavClick}
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors min-h-[44px] ${
             pathname === '/settings'
               ? 'bg-green-500/15 text-green-400'
               : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
@@ -137,7 +157,7 @@ export function Sidebar() {
         </Link>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors min-h-[44px]"
         >
           <LogOut className="w-4 h-4 shrink-0" />
           Sair
@@ -145,5 +165,51 @@ export function Sidebar() {
         <p className="text-[10px] text-zinc-700 mt-2 text-center">v{VERSION}</p>
       </div>
     </aside>
+  )
+}
+
+export function Sidebar() {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  return (
+    <>
+      {/* Mobile top bar */}
+      <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-zinc-800 bg-zinc-950 shrink-0 fixed top-0 left-0 right-0 z-40">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="text-zinc-400 hover:text-white transition-colors p-1"
+          aria-label="Abrir menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-green-500" />
+          <span className="font-semibold text-sm text-zinc-100">Premier Design</span>
+        </div>
+      </div>
+
+      {/* Mobile overlay backdrop */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile sidebar drawer */}
+      <div
+        className={`md:hidden fixed top-0 left-0 h-full z-50 transition-transform duration-300 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <SidebarContent onNavClick={() => setMobileOpen(false)} />
+      </div>
+
+      {/* Desktop sidebar — always visible on md+ */}
+      <div className="hidden md:flex">
+        <SidebarContent />
+      </div>
+    </>
   )
 }

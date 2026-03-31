@@ -15,6 +15,8 @@ import {
   Minus,
   Trash2,
   Save,
+  PanelRight,
+  X,
 } from 'lucide-react'
 import { FormatSelector } from '@/components/designer/FormatSelector'
 import { ElementProperties } from '@/components/designer/ElementProperties'
@@ -41,6 +43,7 @@ const TOOLS = [
 ]
 
 export default function DesignerPage() {
+  const [showMobileRight, setShowMobileRight] = useState(false)
   const [activePanel, setActivePanel] = useState<ToolPanel>(null)
   const [canvasWidth, setCanvasWidth] = useState(1080)
   const [canvasHeight, setCanvasHeight] = useState(1080)
@@ -156,24 +159,32 @@ export default function DesignerPage() {
         <input
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
-          className="text-sm font-semibold bg-transparent border-b border-transparent hover:border-zinc-700 focus:border-green-500 focus:outline-none px-1 py-0.5 w-56 transition-colors"
+          className="text-sm font-semibold bg-transparent border-b border-transparent hover:border-zinc-700 focus:border-green-500 focus:outline-none px-1 py-0.5 w-32 md:w-56 transition-colors"
         />
         <div className="flex-1" />
         <button
           onClick={handleSave}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:text-white hover:border-zinc-600 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:text-white hover:border-zinc-600 transition-colors min-h-[36px]"
         >
           <Save className="w-3.5 h-3.5" />
-          Salvar
+          <span className="hidden sm:inline">Salvar</span>
         </button>
-        <span className="text-xs text-zinc-600">
+        <span className="hidden sm:block text-xs text-zinc-600">
           {canvasWidth}×{canvasHeight}
         </span>
+        {/* Mobile: toggle right panel */}
+        <button
+          onClick={() => setShowMobileRight((v) => !v)}
+          className="md:hidden text-zinc-400 hover:text-white transition-colors p-1"
+          aria-label="Painel direito"
+        >
+          {showMobileRight ? <X className="w-5 h-5" /> : <PanelRight className="w-5 h-5" />}
+        </button>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Tool sidebar */}
-        <div className="w-16 shrink-0 border-r border-zinc-800 flex flex-col items-center gap-1 py-3">
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Tool sidebar — hidden on mobile (tools shown in bottom bar below) */}
+        <div className="hidden md:flex w-16 shrink-0 border-r border-zinc-800 flex-col items-center gap-1 py-3">
           {TOOLS.map((tool) => (
             <button
               key={tool.id}
@@ -202,9 +213,9 @@ export default function DesignerPage() {
           )}
         </div>
 
-        {/* Left secondary panel */}
+        {/* Left secondary panel — full-width overlay on mobile */}
         {activePanel && activePanel !== 'export' && (
-          <div className="w-64 shrink-0 border-r border-zinc-800 p-4 overflow-y-auto">
+          <div className="absolute md:relative inset-0 md:inset-auto z-20 md:z-auto w-full md:w-64 shrink-0 border-r border-zinc-800 p-4 overflow-y-auto bg-zinc-950">
             {activePanel === 'text' && (
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Texto</p>
@@ -320,9 +331,9 @@ export default function DesignerPage() {
           </div>
         )}
 
-        {/* Export panel */}
+        {/* Export panel — full-width overlay on mobile */}
         {activePanel === 'export' && (
-          <div className="w-64 shrink-0 border-r border-zinc-800 p-4 space-y-3">
+          <div className="absolute md:relative inset-0 md:inset-auto z-20 md:z-auto w-full md:w-64 shrink-0 border-r border-zinc-800 p-4 space-y-3 bg-zinc-950">
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Exportar</p>
             <button
               onClick={handleExportPNG}
@@ -350,9 +361,15 @@ export default function DesignerPage() {
           onSelectionChange={handleSelectionChange}
         />
 
-        {/* Right sidebar: Format selector + Properties */}
-        <div className="w-64 shrink-0 border-l border-zinc-800 overflow-y-auto">
+        {/* Right sidebar: Format selector + Properties — overlay on mobile */}
+        <div className={`${showMobileRight ? 'flex' : 'hidden'} md:flex absolute md:relative inset-0 md:inset-auto z-20 md:z-auto w-full md:w-64 shrink-0 border-l border-zinc-800 overflow-y-auto bg-zinc-950 flex-col`}>
           <div className="p-4 border-b border-zinc-800">
+            <div className="flex items-center justify-between mb-3 md:hidden">
+              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Formato e Propriedades</span>
+              <button onClick={() => setShowMobileRight(false)} className="text-zinc-500 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
             <FormatSelector
               selectedPlatform={selectedPlatform}
               selectedFormat={selectedFormat}
@@ -371,6 +388,33 @@ export default function DesignerPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Mobile bottom toolbar */}
+      <div className="md:hidden flex items-center justify-around border-t border-zinc-800 bg-zinc-950 py-2 shrink-0">
+        {TOOLS.map((tool) => (
+          <button
+            key={tool.id}
+            onClick={() => togglePanel(tool.id)}
+            className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] justify-center ${
+              activePanel === tool.id
+                ? 'bg-green-500/20 text-green-400'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <tool.icon className="w-5 h-5" />
+            <span className="text-[9px] leading-none">{tool.label}</span>
+          </button>
+        ))}
+        {selectedElement && (
+          <button
+            onClick={() => { editorRef.current?.removeSelected(); setSelectedElement(null) }}
+            className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg text-red-400 min-w-[44px] min-h-[44px] justify-center"
+          >
+            <Trash2 className="w-5 h-5" />
+            <span className="text-[9px] leading-none">Remover</span>
+          </button>
+        )}
       </div>
     </div>
   )

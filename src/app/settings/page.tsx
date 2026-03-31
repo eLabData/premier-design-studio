@@ -191,15 +191,15 @@ function SettingsContent() {
 
   return (
     <div className="h-full overflow-y-auto bg-zinc-950 text-zinc-100">
-      <div className="max-w-3xl mx-auto px-6 py-8 space-y-10">
+      <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-10">
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-100">Configurações</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-zinc-100">Configurações</h1>
             <p className="text-sm text-zinc-500 mt-1">Gerencie seu perfil, plano e conta.</p>
           </div>
-          <Link href="/" className="text-sm text-zinc-400 hover:text-white transition-colors border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-lg">
+          <Link href="/" className="shrink-0 text-sm text-zinc-400 hover:text-white transition-colors border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-lg">
             ← Voltar
           </Link>
         </div>

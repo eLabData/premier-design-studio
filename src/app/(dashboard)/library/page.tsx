@@ -64,30 +64,30 @@ export default function LibraryPage() {
   return (
     <div className="flex flex-col h-screen bg-zinc-950 text-white">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3 border-b border-zinc-800 shrink-0">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-zinc-400 hover:text-white transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-lg font-semibold">Biblioteca</h1>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar projetos…"
-              className="pl-9 pr-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm placeholder:text-zinc-500 focus:outline-none focus:border-green-500/50 w-56 transition-colors"
+              className="pl-9 pr-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm placeholder:text-zinc-500 focus:outline-none focus:border-green-500/50 w-full sm:w-48 md:w-56 transition-colors"
             />
           </div>
           <Link
             href="/designer"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-sm font-medium transition-colors whitespace-nowrap min-h-[44px]"
           >
             <Plus className="w-4 h-4" />
-            Novo Post
+            <span className="hidden sm:inline">Novo Post</span>
           </Link>
         </div>
       </div>

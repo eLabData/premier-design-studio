@@ -303,7 +303,7 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-10">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-10">
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -345,33 +345,35 @@ export default function AnalyticsPage() {
         <section>
           <SectionTitle>Uso por Módulo</SectionTitle>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            {/* Table header */}
-            <div className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-x-4 px-3 py-2 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider">
-              <span>Módulo</span>
-              <span className="text-right">Chamadas</span>
-              <span className="text-right w-14">Tokens</span>
-              <span className="text-right w-16">Custo (USD)</span>
-              <span className="text-right w-20">Custo (BRL)</span>
-              <span className="text-right w-10">% Total</span>
-            </div>
-            <div className="divide-y divide-zinc-800/50">
-              {data.moduleUsage.map((mod) => (
-                <ModuleRow key={mod.name} mod={mod} maxPct={maxModulePct} />
-              ))}
-            </div>
-            <div className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-x-4 px-3 py-2.5 border-t border-zinc-800 text-sm font-semibold text-zinc-300">
-              <span>Total</span>
-              <span className="text-right tabular-nums">
-                {data.moduleUsage.reduce((s, m) => s + m.calls, 0).toLocaleString("pt-BR")}
-              </span>
-              <span className="text-right w-14">—</span>
-              <span className="text-right w-16">
-                {fmtUsd(data.moduleUsage.reduce((s, m) => s + m.costUsd, 0))}
-              </span>
-              <span className="text-right w-20">
-                {fmtBrl(data.moduleUsage.reduce((s, m) => s + m.costUsd, 0))}
-              </span>
-              <span className="text-right w-10">100%</span>
+            <div className="overflow-x-auto">
+              {/* Table header */}
+              <div className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-x-4 px-3 py-2 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider min-w-[540px]">
+                <span>Módulo</span>
+                <span className="text-right">Chamadas</span>
+                <span className="text-right w-14">Tokens</span>
+                <span className="text-right w-16">Custo (USD)</span>
+                <span className="text-right w-20">Custo (BRL)</span>
+                <span className="text-right w-10">% Total</span>
+              </div>
+              <div className="divide-y divide-zinc-800/50 min-w-[540px]">
+                {data.moduleUsage.map((mod) => (
+                  <ModuleRow key={mod.name} mod={mod} maxPct={maxModulePct} />
+                ))}
+              </div>
+              <div className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-x-4 px-3 py-2.5 border-t border-zinc-800 text-sm font-semibold text-zinc-300 min-w-[540px]">
+                <span>Total</span>
+                <span className="text-right tabular-nums">
+                  {data.moduleUsage.reduce((s, m) => s + m.calls, 0).toLocaleString("pt-BR")}
+                </span>
+                <span className="text-right w-14">—</span>
+                <span className="text-right w-16">
+                  {fmtUsd(data.moduleUsage.reduce((s, m) => s + m.costUsd, 0))}
+                </span>
+                <span className="text-right w-20">
+                  {fmtBrl(data.moduleUsage.reduce((s, m) => s + m.costUsd, 0))}
+                </span>
+                <span className="text-right w-10">100%</span>
+              </div>
             </div>
           </div>
         </section>
@@ -383,14 +385,15 @@ export default function AnalyticsPage() {
           <section>
             <SectionTitle>Custo por Modelo</SectionTitle>
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-              <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-3 px-4 py-2 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider">
+              <div className="overflow-x-auto">
+              <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-3 px-4 py-2 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider min-w-[360px]">
                 <span>Modelo</span>
                 <span className="text-right">Provider</span>
                 <span className="text-right">Chamadas</span>
                 <span className="text-right">Tokens</span>
                 <span className="text-right">Custo</span>
               </div>
-              <div className="divide-y divide-zinc-800/50">
+              <div className="divide-y divide-zinc-800/50 min-w-[360px]">
                 {data.modelUsage.map((m) => (
                   <div
                     key={m.model}
@@ -404,6 +407,7 @@ export default function AnalyticsPage() {
                   </div>
                 ))}
               </div>
+              </div>
             </div>
           </section>
 
@@ -411,13 +415,14 @@ export default function AnalyticsPage() {
           <section>
             <SectionTitle>Custo por Usuário</SectionTitle>
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 px-4 py-2 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider">
+              <div className="overflow-x-auto">
+              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 px-4 py-2 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider min-w-[300px]">
                 <span>Usuário</span>
                 <span className="text-right">Vídeos</span>
                 <span className="text-right">Total</span>
                 <span className="text-right">Média/Vídeo</span>
               </div>
-              <div className="divide-y divide-zinc-800/50">
+              <div className="divide-y divide-zinc-800/50 min-w-[300px]">
                 {data.userCosts.map((u) => (
                   <div
                     key={u.userId}
@@ -429,6 +434,7 @@ export default function AnalyticsPage() {
                     <span className="text-zinc-400 text-right tabular-nums">{fmtUsd(u.avgCostUsd)}</span>
                   </div>
                 ))}
+              </div>
               </div>
             </div>
           </section>

@@ -85,30 +85,30 @@ export default function Home() {
   // Unauthenticated: landing page
   if (!user) {
     return (
-      <div className="flex flex-col flex-1 items-center justify-center min-h-screen p-8 bg-zinc-950">
+      <div className="flex flex-col flex-1 items-center justify-center min-h-screen p-4 md:p-8 bg-zinc-950">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-green-500/5 rounded-full blur-3xl pointer-events-none" />
         <div className="relative w-full max-w-4xl space-y-12">
           <div className="text-center space-y-6">
             <div className="flex items-center justify-center gap-3">
-              <Sparkles className="w-10 h-10 text-green-500" />
-              <h1 className="text-5xl font-bold tracking-tight text-zinc-100">
+              <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-green-500" />
+              <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-100">
                 Premier Design Studio
               </h1>
             </div>
-            <p className="text-zinc-400 text-xl max-w-2xl mx-auto leading-relaxed">
+            <p className="text-zinc-400 text-base md:text-xl max-w-2xl mx-auto leading-relaxed">
               Editor de vídeo, designer de posts e publicação automática com IA — tudo em um só lugar.
             </p>
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <Link
                 href="/register"
-                className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-green-600 hover:bg-green-700 text-white font-semibold transition-colors text-base shadow-lg shadow-green-900/30"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-green-600 hover:bg-green-700 text-white font-semibold transition-colors text-base shadow-lg shadow-green-900/30"
               >
                 <Plus className="w-5 h-5" />
                 Começar grátis
               </Link>
               <Link
                 href="/login"
-                className="flex items-center gap-2 px-8 py-3.5 rounded-full border border-zinc-700 hover:border-zinc-600 text-zinc-300 hover:text-white font-medium transition-colors text-base"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-full border border-zinc-700 hover:border-zinc-600 text-zinc-300 hover:text-white font-medium transition-colors text-base"
               >
                 <LogIn className="w-5 h-5" />
                 Entrar
@@ -146,14 +146,14 @@ export default function Home() {
 
   // Authenticated: dashboard
   return (
-    <div className="flex flex-col flex-1 items-center justify-center min-h-screen p-8 bg-zinc-950">
+    <div className="flex flex-col flex-1 items-center justify-center min-h-screen p-4 md:p-8 bg-zinc-950">
       <div className="w-full max-w-4xl space-y-10">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <Sparkles className="w-7 h-7 text-green-500" />
-              <h1 className="text-3xl font-bold tracking-tight text-zinc-100">
+              <Sparkles className="w-6 h-6 md:w-7 md:h-7 text-green-500" />
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-100">
                 Premier Design Studio
               </h1>
             </div>
@@ -192,7 +192,7 @@ export default function Home() {
         </div>
 
         {/* Module Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {modules.map((mod) => {
             const accessible = canAccess(mod.module);
             return (
