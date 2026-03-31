@@ -1,4 +1,5 @@
 'use client'
+import { useState, useEffect } from 'react'
 import Link from "next/link";
 import {
   Video,
@@ -15,6 +16,7 @@ import {
   Camera,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
+import { VERSION } from "@/lib/version";
 
 const modules = [
   {
@@ -260,7 +262,58 @@ export default function Home() {
             </Link>
           </div>
         )}
+
+        {/* Social connections quick view */}
+        <DashboardConnections />
+
+        {/* Version footer */}
+        <p className="text-center text-[10px] text-zinc-700 pt-4">
+          Premier Design Studio v{VERSION}
+        </p>
       </div>
     </div>
   );
+}
+
+function DashboardConnections() {
+  const [integrations, setIntegrations] = useState<Array<{ id: string; provider: string; account_name: string }>>([])
+
+  useEffect(() => {
+    fetch('/api/social/integrations')
+      .then(r => r.ok ? r.json() : [])
+      .then(setIntegrations)
+      .catch(() => {})
+  }, [])
+
+  const providerIcons: Record<string, string> = {
+    youtube: '▶', instagram: '📷', facebook: '🌐', tiktok: '♪', x: '𝕏', linkedin: '💼',
+  }
+
+  return (
+    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Redes Conectadas</p>
+        <Link href="/settings/connections" className="text-xs text-green-500 hover:text-green-400 transition-colors">
+          Gerenciar
+        </Link>
+      </div>
+      {integrations.length === 0 ? (
+        <Link
+          href="/settings/connections"
+          className="flex items-center justify-center gap-2 py-3 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+        >
+          Nenhuma rede conectada — clique para conectar
+        </Link>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {integrations.map((i) => (
+            <span key={i.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-800 border border-zinc-700 text-xs text-zinc-300">
+              <span>{providerIcons[i.provider] || '🔗'}</span>
+              {i.account_name || i.provider}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
