@@ -54,18 +54,8 @@ function SidebarContent({
 
   const plan = profile?.plan ?? 'free'
 
-  const handleLogout = async () => {
-    try {
-      const supabase = createSupabaseBrowser()
-      await supabase.auth.signOut()
-    } catch {}
-    await fetch('/api/auth/logout', { method: 'POST' })
-    setUser(null)
-    setProfile(null)
-    document.cookie.split(';').forEach(c => {
-      document.cookie = c.trim().split('=')[0] + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/'
-    })
-    window.location.href = '/login'
+  const handleLogout = () => {
+    window.location.href = '/api/auth/logout'
   }
 
   return (
