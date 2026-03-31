@@ -14,7 +14,16 @@ import {
   XCircle,
   Share2,
   ChevronRight,
+  Camera,
+  Globe,
+  Tv,
+  Music,
+  AtSign,
+  Briefcase,
+  CheckCircle,
 } from 'lucide-react'
+import { useSocial } from '@/hooks/useSocial'
+import { PROVIDERS } from '@/lib/postiz'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/auth-store'
 import { createSupabaseBrowser } from '@/lib/supabase-browser'
@@ -82,6 +91,71 @@ const PLANS: PlanConfig[] = [
     ],
   },
 ]
+
+// ── Social Connections Inline ─────────────────────────────────────────────
+
+const PROVIDER_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  instagram: Camera,
+  facebook: Globe,
+  youtube: Tv,
+  tiktok: Music,
+  x: AtSign,
+  linkedin: Briefcase,
+}
+
+const QUICK_PROVIDERS = ['youtube', 'instagram', 'facebook', 'tiktok', 'x', 'linkedin']
+
+function SocialConnectionsInline() {
+  const { integrations, connect, connecting, error } = useSocial()
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Share2 className="w-4 h-4 text-zinc-400" />
+        <h2 className="text-base font-semibold text-zinc-100">Redes Sociais</h2>
+      </div>
+      {error && (
+        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
+      )}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {QUICK_PROVIDERS.map((providerId) => {
+          const info = PROVIDERS[providerId]
+          if (!info) return null
+          const Icon = PROVIDER_ICONS[providerId] || Globe
+          const connected = integrations.find(i => i.provider === providerId)
+          const isConnecting = connecting === providerId
+
+          return (
+            <button
+              key={providerId}
+              onClick={() => !connected && connect(providerId)}
+              disabled={!!connected || isConnecting}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${
+                connected
+                  ? 'bg-green-500/5 border-green-500/30'
+                  : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+              } ${isConnecting ? 'opacity-60' : ''}`}
+            >
+              <Icon className={`w-5 h-5 shrink-0 ${info.color}`} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{info.name}</p>
+                {connected ? (
+                  <p className="text-[10px] text-green-400 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" /> Conectado
+                  </p>
+                ) : isConnecting ? (
+                  <p className="text-[10px] text-zinc-500">Conectando...</p>
+                ) : (
+                  <p className="text-[10px] text-zinc-500">Clique para conectar</p>
+                )}
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
 
 // ── Page ────────────────────────────────────────────────────────────────────
 
@@ -263,19 +337,18 @@ function SettingsContent() {
         </section>
 
         {/* Social connections section */}
+        <SocialConnectionsInline />
+
+        {/* Link to full connections page */}
         <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Share2 className="w-4 h-4 text-zinc-400" />
-            <h2 className="text-base font-semibold text-zinc-100">Redes Sociais</h2>
-          </div>
           <Link
             href="/settings/connections"
             className="flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors group"
           >
             <div>
-              <p className="text-sm font-medium text-zinc-200">Conexoes de Redes Sociais</p>
+              <p className="text-sm font-medium text-zinc-200">Gerenciar todas as conexoes</p>
               <p className="text-xs text-zinc-500 mt-0.5">
-                Gerencie contas conectadas do Instagram, YouTube, TikTok e mais.
+                Conecte mais plataformas e gerencie permissoes.
               </p>
             </div>
             <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-colors shrink-0" />
