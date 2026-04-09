@@ -15,6 +15,9 @@ const UPSCALE_MODELS = new Set(['real-esrgan', 'creative-upscaler', 'aura-sr', '
 
 export async function POST(req: Request) {
   try {
+    const { searchParams } = new URL(req.url)
+    const useAsync = searchParams.get('async') === 'true'
+
     const body = (await req.json()) as {
       prompt: string
       imageData?: string
@@ -25,8 +28,26 @@ export async function POST(req: Request) {
 
     const { prompt, imageData, model = 'kontext-pro', outputFormat = 'png', extraParams } = body
 
-    if (!prompt) {
+    if (!prompt && !UPSCALE_MODELS.has(model)) {
       return NextResponse.json({ error: 'prompt obrigatorio' }, { status: 400 })
+    }
+
+    // Async mode: delegate to queue + webhook via /api/ai/jobs
+    if (useAsync) {
+      const jobsUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/ai/jobs`
+      const jobRes = await fetch(jobsUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          cookie: req.headers.get('cookie') ?? '',
+        },
+        body: JSON.stringify(body),
+      })
+      const jobData = await jobRes.json()
+      if (!jobRes.ok) {
+        return NextResponse.json(jobData, { status: jobRes.status })
+      }
+      return NextResponse.json({ async: true, ...jobData })
     }
 
     const falKey = process.env.FAL_AI_KEY
@@ -55,7 +76,8 @@ export async function POST(req: Request) {
           falBody.checkpoint = 'v2'
           falBody.overlapping_tiles = true
         } else if (model === 'recraft-crisp') {
-          // recraft only needs image_url
+          // recraft only needs image_url — strip everything else
+          delete falBody.scale
         } else {
           falBody.scale = extraParams?.scale ?? 2
         }
