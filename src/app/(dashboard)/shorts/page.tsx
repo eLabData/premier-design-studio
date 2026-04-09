@@ -20,7 +20,13 @@ import {
   ChevronLeft,
   Wand2,
   RefreshCw,
+  Download,
+  RotateCcw,
+  Play,
 } from 'lucide-react'
+import { Player } from '@remotion/player'
+import { FacelessShort } from '@/remotion/compositions/FacelessShort'
+import type { FacelessScene, FacelessCaptionSegment } from '@/remotion/compositions/FacelessShort'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -58,6 +64,9 @@ interface ShortItem {
   narration_url?: string
   script?: string
   scenes?: SceneItem[]
+  captions?: { text: string; startFrame: number; endFrame: number }[]
+  caption_style?: string
+  total_frames?: number
   platform_metadata?: {
     youtube?: { title: string; description: string; hashtags: string[] }
     instagram?: { title: string; description: string; hashtags: string[] }
@@ -136,6 +145,8 @@ export default function ShortsPage() {
   const [shortId, setShortId] = useState<string | null>(null)
   const [currentShort, setCurrentShort] = useState<ShortItem | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [regeneratingScene, setRegeneratingScene] = useState<number | null>(null)
+  const [showPreview, setShowPreview] = useState(false)
 
   // Gallery
   const [shorts, setShorts] = useState<ShortItem[]>([])
@@ -270,6 +281,40 @@ export default function ShortsPage() {
     setShortId(null)
     setCurrentShort(null)
     setIsGenerating(false)
+  }
+
+  const regenerateSceneImage = async (sceneIndex: number) => {
+    if (!currentShort?.scenes?.[sceneIndex] || !shortId) return
+    setRegeneratingScene(sceneIndex)
+    try {
+      const scene = currentShort.scenes[sceneIndex]
+      const res = await fetch('/api/ai/image-edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'schnell',
+          prompt: `${scene.imagePrompt || scene.text}. Do NOT include any text, words, or letters in the image.`,
+          image_size: { width: 1080, height: 1920 },
+        }),
+      })
+      if (!res.ok) throw new Error('Falha ao regenerar imagem')
+      const data = await res.json()
+      const newImageUrl = data.imageUrl || data.images?.[0]?.url
+      if (newImageUrl) {
+        const updatedScenes = [...currentShort.scenes]
+        updatedScenes[sceneIndex] = { ...updatedScenes[sceneIndex], imageUrl: newImageUrl }
+        setCurrentShort({ ...currentShort, scenes: updatedScenes })
+        // Persist to DB
+        await fetch(`/api/ai/shorts/${shortId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scenes: updatedScenes }),
+        })
+      }
+    } catch (err) {
+      alert('Erro ao regenerar imagem. Tente novamente.')
+    }
+    setRegeneratingScene(null)
   }
 
   const openShort = (s: ShortItem) => {
@@ -703,19 +748,74 @@ export default function ShortsPage() {
             ) : (
               /* Completed */
               <div className="space-y-5">
-                {/* Video / Script */}
-                {currentShort.video_url ? (
-                  <video
-                    src={currentShort.video_url}
-                    controls
-                    className="w-full rounded-xl border border-zinc-800"
-                  />
-                ) : currentShort.script ? (
+                {/* Video Preview — Remotion Player */}
+                {currentShort.scenes && currentShort.scenes.length > 0 && currentShort.narration_url && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Preview do Video</p>
+                      <button
+                        onClick={() => setShowPreview(!showPreview)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30 text-xs font-medium text-purple-300 hover:bg-purple-500/30 transition-colors"
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                        {showPreview ? 'Esconder Player' : 'Mostrar Player'}
+                      </button>
+                    </div>
+                    {showPreview && (() => {
+                      const fps = 30
+                      const totalFrames = currentShort.total_frames || currentShort.scenes!.reduce((sum, s) => sum + (s.durationFrames || 160), 0)
+                      const playerScenes: FacelessScene[] = currentShort.scenes!.map(s => ({
+                        imageUrl: s.imageUrl,
+                        durationFrames: s.durationFrames || 160,
+                        startFrame: s.startFrame || 0,
+                        motion: (s.motion as FacelessScene['motion']) || 'none',
+                      }))
+                      const playerCaptions: FacelessCaptionSegment[] = currentShort.captions?.map(c => ({
+                        text: c.text,
+                        startFrame: c.startFrame,
+                        endFrame: c.endFrame,
+                      })) || currentShort.scenes!.map(s => ({
+                        text: s.text,
+                        startFrame: s.startFrame || 0,
+                        endFrame: (s.startFrame || 0) + (s.durationFrames || 160),
+                      }))
+
+                      return (
+                        <div className="flex justify-center">
+                          <div className="rounded-xl overflow-hidden border border-zinc-800" style={{ width: 360, height: 640 }}>
+                            <Player
+                              component={FacelessShort}
+                              inputProps={{
+                                scenes: playerScenes,
+                                audioUrl: currentShort.narration_url!,
+                                captions: playerCaptions,
+                                captionStyle: (currentShort.caption_style as 'bold' | 'minimal' | 'karaoke' | 'boxed') || 'bold',
+                                format: 'short' as const,
+                                showProgressBar: true,
+                                totalFrames,
+                              }}
+                              durationInFrames={totalFrames}
+                              compositionWidth={1080}
+                              compositionHeight={1920}
+                              fps={fps}
+                              style={{ width: 360, height: 640 }}
+                              controls
+                              autoPlay={false}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+
+                {/* Script */}
+                {currentShort.script && (
                   <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 space-y-2">
                     <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Script</p>
                     <p className="text-sm text-zinc-300 whitespace-pre-wrap">{currentShort.script}</p>
                   </div>
-                ) : null}
+                )}
 
                 {/* Audio player */}
                 {currentShort.narration_url && (
@@ -746,11 +846,25 @@ export default function ShortsPage() {
                           )}
                           <div className="p-3 flex-1 space-y-2">
                             <p className="text-sm text-zinc-200 leading-relaxed">{scene.text}</p>
-                            {scene.motion && (
-                              <span className="inline-block px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-[10px] font-medium text-purple-300 uppercase tracking-wider">
-                                {scene.motion}
-                              </span>
-                            )}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {scene.motion && (
+                                <span className="inline-block px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-[10px] font-medium text-purple-300 uppercase tracking-wider">
+                                  {scene.motion}
+                                </span>
+                              )}
+                              <button
+                                onClick={() => regenerateSceneImage(i)}
+                                disabled={regeneratingScene === i}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-[10px] font-medium text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors disabled:opacity-50"
+                              >
+                                {regeneratingScene === i ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <RotateCcw className="w-3 h-3" />
+                                )}
+                                Regenerar imagem
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -833,7 +947,20 @@ export default function ShortsPage() {
                   download
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-sm font-medium text-white transition-colors"
                 >
-                  Download
+                  <Download className="w-4 h-4" />
+                  Download Video
+                </a>
+              )}
+              {currentShort?.status === 'completed' && currentShort.narration_url && (
+                <a
+                  href={currentShort.narration_url}
+                  download="narration.mp3"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 hover:text-white hover:border-zinc-600 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Audio
                 </a>
               )}
               {shortId && (

@@ -49,6 +49,52 @@ export async function GET(
   }
 }
 
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params
+    const body = await req.json()
+
+    const supabaseAuth = await createSupabaseServer()
+    const {
+      data: { user },
+    } = await supabaseAuth.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Nao autenticado' }, { status: 401 })
+    }
+
+    const supabase = createSupabaseAdmin()
+
+    // Only allow updating scenes (for image regeneration)
+    const updateData: Record<string, unknown> = {}
+    if (body.scenes) updateData.scenes = body.scenes
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'Nada para atualizar' }, { status: 400 })
+    }
+
+    const { error } = await supabase
+      .from('shorts')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', user.id)
+
+    if (error) {
+      return NextResponse.json({ error: 'Erro ao atualizar' }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('[shorts/[id]] PATCH error:', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Erro interno' },
+      { status: 500 },
+    )
+  }
+}
+
 export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },

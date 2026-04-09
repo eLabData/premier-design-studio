@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Camera,
   Shield,
+  Users,
   Film,
   ChevronDown,
   Eraser,
@@ -282,13 +283,33 @@ export default function Home() {
               return <ExpandableCard key={mod.href} mod={mod} accessible={accessible} plan={plan} />;
             }
 
+            if (!accessible) {
+              return (
+                <div
+                  key={mod.href}
+                  className={`group relative overflow-hidden rounded-xl border ${mod.borderColor} bg-gradient-to-br ${mod.color} p-6 opacity-50 cursor-not-allowed`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-lg bg-zinc-800/50 p-3">
+                      <mod.icon className="w-6 h-6 text-zinc-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-semibold text-zinc-400">{mod.title}</h2>
+                        <Crown className="w-3.5 h-3.5 text-amber-400" />
+                      </div>
+                      <p className="text-sm text-zinc-500 mt-1">Plano Pro necessario</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
             return (
               <Link
                 key={mod.href}
                 href={mod.href}
-                className={`group relative overflow-hidden rounded-xl border ${mod.borderColor} bg-gradient-to-br ${mod.color} p-6 transition-all hover:scale-[1.02] hover:shadow-lg ${
-                  !accessible ? 'opacity-60' : ''
-                }`}
+                className={`group relative overflow-hidden rounded-xl border ${mod.borderColor} bg-gradient-to-br ${mod.color} p-6 transition-all hover:scale-[1.02] hover:shadow-lg`}
               >
                 <div className="flex items-start gap-4">
                   <div className="rounded-lg bg-zinc-800/50 p-3">
@@ -356,6 +377,36 @@ export default function Home() {
                   <div className="flex-1">
                     <h2 className="text-xl font-semibold text-zinc-100">fal.ai Admin</h2>
                     <p className="text-sm text-zinc-400 mt-1">Billing, uso, API keys</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors mt-1 shrink-0" />
+                </div>
+              </Link>
+              <Link
+                href="/admin/users"
+                className="group relative overflow-hidden rounded-xl border border-red-500/30 bg-gradient-to-br from-red-500/20 to-red-600/5 p-6 transition-all hover:scale-[1.02] hover:shadow-lg"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg bg-red-900/50 p-3">
+                    <Users className="w-6 h-6 text-red-300" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-semibold text-zinc-100">Usuarios</h2>
+                    <p className="text-sm text-zinc-400 mt-1">Users, uso, custos</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors mt-1 shrink-0" />
+                </div>
+              </Link>
+              <Link
+                href="/analytics"
+                className="group relative overflow-hidden rounded-xl border border-red-500/30 bg-gradient-to-br from-red-500/20 to-red-600/5 p-6 transition-all hover:scale-[1.02] hover:shadow-lg"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg bg-red-900/50 p-3">
+                    <BarChart3 className="w-6 h-6 text-red-300" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-semibold text-zinc-100">Analytics</h2>
+                    <p className="text-sm text-zinc-400 mt-1">Custos reais, uso por modulo</p>
                   </div>
                   <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors mt-1 shrink-0" />
                 </div>

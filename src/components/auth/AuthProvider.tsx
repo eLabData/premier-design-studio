@@ -3,6 +3,16 @@ import { useEffect } from 'react'
 import { useAuthStore } from '@/lib/auth-store'
 import { createSupabaseBrowser } from '@/lib/supabase-browser'
 
+const SUPER_ADMIN_EMAIL = 'rafael@elabdata.com.br'
+
+function applyAdminOverride(profile: Record<string, unknown> | null, email?: string) {
+  if (!profile) return profile
+  if (email === SUPER_ADMIN_EMAIL) {
+    return { ...profile, plan: 'pro' }
+  }
+  return profile
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setProfile, setLoading } = useAuthStore()
 
@@ -10,17 +20,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = createSupabaseBrowser()
 
     // Get initial session
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setUser(user)
       if (user) {
-        supabase
+        const { data } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single()
-          .then(({ data }) => {
-            if (data) setProfile(data)
-          })
+        if (data) {
+          setProfile(applyAdminOverride(data, user.email ?? undefined) as never)
+        } else {
+          // Profile doesn't exist yet — create minimal one
+          setProfile(applyAdminOverride(
+            { id: user.id, email: user.email, full_name: null, avatar_url: null, plan: 'free', stripe_customer_id: null, stripe_subscription_id: null },
+            user.email ?? undefined
+          ) as never)
+        }
       }
       setLoading(false)
     })
@@ -36,7 +52,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .select('*')
           .eq('id', session.user.id)
           .single()
-        if (data) setProfile(data)
+        if (data) {
+          setProfile(applyAdminOverride(data, session.user.email) as never)
+        }
       } else {
         setProfile(null)
       }
