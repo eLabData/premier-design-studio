@@ -1,0 +1,110 @@
+import { NextResponse } from 'next/server'
+
+const FAL_API = 'https://api.fal.ai'
+
+async function falAdmin(path: string, method = 'GET', body?: unknown) {
+  const key = process.env.FAL_AI_ADMIN_KEY
+  if (!key) {
+    throw new Error('FAL_AI_ADMIN_KEY nao configurada')
+  }
+
+  const res = await fetch(`${FAL_API}${path}`, {
+    method,
+    headers: {
+      Authorization: `Key ${key}`,
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => res.statusText)
+    throw new Error(`fal.ai ${res.status}: ${errText}`)
+  }
+
+  return res.json()
+}
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const action = searchParams.get('action')
+
+  // TODO: add auth check for super admin only
+  try {
+    switch (action) {
+      case 'billing': {
+        const data = await falAdmin('/v1/account/billing?expand=credits')
+        return NextResponse.json(data)
+      }
+
+      case 'usage': {
+        const start = searchParams.get('start') || new Date(Date.now() - 30 * 86400000).toISOString()
+        const end = searchParams.get('end') || new Date().toISOString()
+        const timeframe = searchParams.get('timeframe') || 'day'
+        const url = `/v1/models/usage?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&timeframe=${timeframe}&expand=time_series&expand=summary`
+        const data = await falAdmin(url)
+        return NextResponse.json(data)
+      }
+
+      case 'usage-summary': {
+        const start = searchParams.get('start') || new Date(Date.now() - 30 * 86400000).toISOString()
+        const end = searchParams.get('end') || new Date().toISOString()
+        const url = `/v1/models/usage?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&expand=summary`
+        const data = await falAdmin(url)
+        return NextResponse.json(data)
+      }
+
+      case 'keys': {
+        const data = await falAdmin('/v1/keys/list')
+        return NextResponse.json(data)
+      }
+
+      default:
+        return NextResponse.json({ error: 'action invalida' }, { status: 400 })
+    }
+  } catch (err) {
+    console.error('[admin/fal]', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Erro interno' },
+      { status: 500 },
+    )
+  }
+}
+
+export async function POST(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const action = searchParams.get('action')
+
+  try {
+    switch (action) {
+      case 'create-key': {
+        const body = await req.json()
+        const data = await falAdmin('/v1/keys/create', 'POST', {
+          alias: body.alias || 'api-key',
+          scope: body.scope || 'API',
+        })
+        return NextResponse.json(data)
+      }
+
+      case 'delete-key': {
+        const body = await req.json()
+        if (!body.key_id) {
+          return NextResponse.json({ error: 'key_id obrigatorio' }, { status: 400 })
+        }
+        const data = await falAdmin('/v1/keys/delete', 'DELETE', {
+          key_id: body.key_id,
+        })
+        return NextResponse.json(data)
+      }
+
+      default:
+        return NextResponse.json({ error: 'action invalida' }, { status: 400 })
+    }
+  } catch (err) {
+    console.error('[admin/fal]', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Erro interno' },
+      { status: 500 },
+    )
+  }
+}

@@ -69,8 +69,11 @@ export type AIModule =
   | 'logo_gen'
   | 'mockup_gen'
   | 'store_assets'
+  | 'image_edit'
+  | 'image_upscale'
+  | 'image_generate'
 
-export type AIProvider = 'openrouter' | 'openai_direct' | 'pexels' | 'local'
+export type AIProvider = 'openrouter' | 'openai_direct' | 'pexels' | 'local' | 'fal_ai'
 
 export interface UsageEvent {
   id: string
