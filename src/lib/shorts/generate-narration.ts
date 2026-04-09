@@ -15,7 +15,7 @@ export async function generateNarration(
 ): Promise<NarrationResult> {
   switch (provider) {
     case 'fal_ai':
-      return generateFalTTS(text, language, falKey)
+      return generateInworldTTS(text, language, falKey)
     case 'openai':
       return generateOpenAITTS(text, language, openRouterKey)
     case 'elevenlabs':
@@ -25,22 +25,21 @@ export async function generateNarration(
   }
 }
 
-async function generateFalTTS(
+async function generateInworldTTS(
   text: string,
   language: string,
   falKey: string,
 ): Promise<NarrationResult> {
-  const response = await fetch('https://fal.run/fal-ai/f5-tts', {
+  // Inworld TTS — fast, no reference audio needed
+  const voice = language === 'pt-br' ? 'Celeste (en)' : 'Hank (en)'
+
+  const response = await fetch('https://fal.run/fal-ai/inworld-tts', {
     method: 'POST',
     headers: {
       Authorization: `Key ${falKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      gen_text: text,
-      ref_audio_url: 'https://github.com/SWivid/F5-TTS/raw/refs/heads/main/tests/ref_audio/test_en_1_ref_short.wav',
-      model_type: 'F5-TTS',
-    }),
+    body: JSON.stringify({ text, voice }),
   })
 
   if (!response.ok) {
@@ -49,7 +48,7 @@ async function generateFalTTS(
   }
 
   const data = await response.json()
-  const audioUrl = data.audio_url?.url ?? data.audio_url ?? ''
+  const audioUrl = data.audio?.url ?? ''
   const wordCount = text.split(/\s+/).length
   const durationSec = Math.ceil((wordCount / 150) * 60)
 
