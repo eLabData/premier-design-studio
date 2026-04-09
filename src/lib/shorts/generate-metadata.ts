@@ -16,7 +16,7 @@ export async function generatePlatformMetadata(
       'HTTP-Referer': 'https://studio.elabdata.com.br',
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-sonnet-4',
       messages: [
         {
           role: 'system',
@@ -44,7 +44,13 @@ Output JSON with this exact structure:
   }
 
   const data = await response.json()
-  const content = data.choices?.[0]?.message?.content ?? '{}'
+  let content = data.choices?.[0]?.message?.content ?? '{}'
+  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (jsonMatch) content = jsonMatch[1].trim()
+  if (!content.startsWith('{')) {
+    const objMatch = content.match(/\{[\s\S]*\}/)
+    if (objMatch) content = objMatch[0]
+  }
   const metadata = JSON.parse(content) as PlatformMetadata
 
   return { metadata, costUsd: 0.005 }

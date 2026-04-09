@@ -14,13 +14,13 @@ import type {
 
 export const MODELS = {
   // Texto / Analise
-  CLAUDE_SONNET: 'anthropic/claude-sonnet-4-20250514',
+  CLAUDE_SONNET: 'anthropic/claude-sonnet-4',
   CLAUDE_HAIKU: 'anthropic/claude-haiku-4-5-20251001',
   GPT4O_MINI: 'openai/gpt-4o-mini',
   LLAMA_70B: 'meta-llama/llama-3.3-70b-instruct',
 
   // Visao
-  CLAUDE_VISION: 'anthropic/claude-sonnet-4-20250514',
+  CLAUDE_VISION: 'anthropic/claude-sonnet-4',
   GPT4O_VISION: 'openai/gpt-4o',
 
   // Transcricao
@@ -31,7 +31,7 @@ export type ModelId = (typeof MODELS)[keyof typeof MODELS]
 
 // Custo aproximado por 1K tokens (entrada/saida) em USD
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
-  'anthropic/claude-sonnet-4-20250514': { input: 0.003, output: 0.015 },
+  'anthropic/claude-sonnet-4': { input: 0.003, output: 0.015 },
   'anthropic/claude-haiku-4-5-20251001': { input: 0.0008, output: 0.004 },
   'openai/gpt-4o-mini': { input: 0.00015, output: 0.0006 },
   'openai/gpt-4o': { input: 0.005, output: 0.015 },

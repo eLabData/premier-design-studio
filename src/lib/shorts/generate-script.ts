@@ -37,7 +37,7 @@ export async function generateScript(
       'HTTP-Referer': 'https://studio.elabdata.com.br',
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-sonnet-4',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         {
@@ -56,7 +56,15 @@ Output JSON: { "title": "catchy title under 60 chars", "scenes": [{ "narration":
   }
 
   const data = await response.json()
-  const content = data.choices?.[0]?.message?.content ?? '{}'
+  let content = data.choices?.[0]?.message?.content ?? '{}'
+  // Strip markdown code fences if present
+  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (jsonMatch) content = jsonMatch[1].trim()
+  // Also try to extract raw JSON object
+  if (!content.startsWith('{')) {
+    const objMatch = content.match(/\{[\s\S]*\}/)
+    if (objMatch) content = objMatch[0]
+  }
   const parsed = JSON.parse(content) as {
     title: string
     scenes: Array<{ narration: string; imagePrompt: string; motion: string }>

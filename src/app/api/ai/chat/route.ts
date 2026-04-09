@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         'X-Title': 'Premier Design Studio',
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-sonnet-4-20250514',
+        model: 'anthropic/claude-sonnet-4',
         messages: [{ role: 'system', content: systemPrompt }, ...messages],
         max_tokens: 2000,
         stream: false,
