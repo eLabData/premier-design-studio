@@ -10,10 +10,32 @@ jobs:
     steps:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_OPENROUTER_API_KEY: ${{ secrets.NEXT_PUBLIC_OPENROUTER_API_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID }}
+          FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          TIKTOK_CLIENT_ID: ${{ secrets.TIKTOK_CLIENT_ID }}
+          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
+          LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+          FAL_AI_KEY: ${{ secrets.FAL_AI_KEY }}
+          FAL_AI_ADMIN_KEY: ${{ secrets.FAL_AI_ADMIN_KEY }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_OPENROUTER_API_KEY,SUPABASE_SERVICE_ROLE_KEY,STRIPE_SECRET_KEY,STRIPE_WEBHOOK_SECRET,OPENAI_API_KEY,PEXELS_API_KEY,YOUTUBE_CLIENT_ID,YOUTUBE_CLIENT_SECRET,FACEBOOK_APP_ID,FACEBOOK_APP_SECRET,X_API_KEY,X_API_SECRET,TIKTOK_CLIENT_ID,TIKTOK_CLIENT_SECRET,LINKEDIN_CLIENT_ID,LINKEDIN_CLIENT_SECRET,FAL_AI_KEY,FAL_AI_ADMIN_KEY
           script: |
             cd ~/apps/premier-design-studio || mkdir -p ~/apps/premier-design-studio
             cd ~/apps/premier-design-studio
@@ -25,30 +47,30 @@ jobs:
               git clone https://github.com/eLabData/premier-design-studio.git .
             fi
 
-            # Write env file (no leading spaces!)
-            cat > .env.production << ENVEOF
-NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-NEXT_PUBLIC_OPENROUTER_API_KEY=${{ secrets.NEXT_PUBLIC_OPENROUTER_API_KEY }}
-NEXT_PUBLIC_APP_URL=https://studio.elabdata.com.br
-STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
-STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
-SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-PEXELS_API_KEY=${{ secrets.PEXELS_API_KEY }}
-YOUTUBE_CLIENT_ID=${{ secrets.YOUTUBE_CLIENT_ID }}
-YOUTUBE_CLIENT_SECRET=${{ secrets.YOUTUBE_CLIENT_SECRET }}
-FACEBOOK_APP_ID=${{ secrets.FACEBOOK_APP_ID }}
-FACEBOOK_APP_SECRET=${{ secrets.FACEBOOK_APP_SECRET }}
-X_API_KEY=${{ secrets.X_API_KEY }}
-X_API_SECRET=${{ secrets.X_API_SECRET }}
-TIKTOK_CLIENT_ID=${{ secrets.TIKTOK_CLIENT_ID }}
-TIKTOK_CLIENT_SECRET=${{ secrets.TIKTOK_CLIENT_SECRET }}
-LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}
-LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }}
-FAL_AI_KEY=${{ secrets.FAL_AI_KEY }}
-FAL_AI_ADMIN_KEY=${{ secrets.FAL_AI_ADMIN_KEY }}
-ENVEOF
+            # Write env file
+            printf '%s\n' \
+              "NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}" \
+              "NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+              "NEXT_PUBLIC_OPENROUTER_API_KEY=${NEXT_PUBLIC_OPENROUTER_API_KEY}" \
+              "NEXT_PUBLIC_APP_URL=https://studio.elabdata.com.br" \
+              "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}" \
+              "STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}" \
+              "STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}" \
+              "OPENAI_API_KEY=${OPENAI_API_KEY}" \
+              "PEXELS_API_KEY=${PEXELS_API_KEY}" \
+              "YOUTUBE_CLIENT_ID=${YOUTUBE_CLIENT_ID}" \
+              "YOUTUBE_CLIENT_SECRET=${YOUTUBE_CLIENT_SECRET}" \
+              "FACEBOOK_APP_ID=${FACEBOOK_APP_ID}" \
+              "FACEBOOK_APP_SECRET=${FACEBOOK_APP_SECRET}" \
+              "X_API_KEY=${X_API_KEY}" \
+              "X_API_SECRET=${X_API_SECRET}" \
+              "TIKTOK_CLIENT_ID=${TIKTOK_CLIENT_ID}" \
+              "TIKTOK_CLIENT_SECRET=${TIKTOK_CLIENT_SECRET}" \
+              "LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID}" \
+              "LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET}" \
+              "FAL_AI_KEY=${FAL_AI_KEY}" \
+              "FAL_AI_ADMIN_KEY=${FAL_AI_ADMIN_KEY}" \
+              > .env.production
 
             # Build and restart
             docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build --remove-orphans
