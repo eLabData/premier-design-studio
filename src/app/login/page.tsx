@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Sparkles, Loader2, Eye, EyeOff } from 'lucide-react'
 import { createSupabaseBrowser } from '@/lib/supabase-browser'
+import { VERSION } from '@/lib/version'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -19,12 +20,18 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
     const supabase = createSupabaseBrowser()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({ email, password }).catch((e) => ({
+      error: { message: e?.message === 'Failed to fetch'
+        ? 'Erro de conexão com o banco de dados. Tente novamente em alguns instantes.'
+        : e?.message || 'Erro inesperado' },
+    }))
     if (error) {
       setError(
         error.message === 'Invalid login credentials'
           ? 'E-mail ou senha inválidos.'
-          : error.message
+          : error.message.includes('fetch') || error.message.includes('network')
+            ? 'Erro de conexão com o servidor. Verifique sua internet ou tente novamente.'
+            : error.message
       )
       setLoading(false)
     } else {
@@ -61,6 +68,7 @@ export default function LoginPage() {
           <p className="text-sm text-zinc-500">
             Editor de vídeo, designer de posts e publicação automática com IA
           </p>
+          <p className="text-[10px] text-zinc-700">v{VERSION}</p>
         </div>
 
         {/* Card */}
