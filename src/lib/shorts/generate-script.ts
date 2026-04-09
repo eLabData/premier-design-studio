@@ -48,7 +48,6 @@ Output JSON: { "title": "catchy title under 60 chars", "scenes": [{ "narration":
         },
       ],
       max_tokens: 2000,
-      response_format: { type: 'json_object' },
     }),
   })
 

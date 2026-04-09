@@ -36,7 +36,6 @@ Output JSON with this exact structure:
         },
       ],
       max_tokens: 1500,
-      response_format: { type: 'json_object' },
     }),
   })
 

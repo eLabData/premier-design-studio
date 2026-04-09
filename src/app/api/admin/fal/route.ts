@@ -55,7 +55,7 @@ export async function GET(req: Request) {
       }
 
       case 'keys': {
-        const data = await falAdmin('/v1/keys/list')
+        const data = await falAdmin('/v1/keys')
         return NextResponse.json(data)
       }
 
