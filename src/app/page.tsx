@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Camera,
   Shield,
+  Film,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { VERSION } from "@/lib/version";
@@ -89,6 +90,15 @@ const modules = [
     borderColor: "border-cyan-500/30",
     module: "analytics",
     pro: true,
+  },
+  {
+    title: "Gerador de Shorts",
+    description: "Crie shorts virais com IA",
+    icon: Film,
+    href: "/shorts",
+    color: "from-purple-500/20 to-purple-600/5",
+    borderColor: "border-purple-500/30",
+    module: "shorts",
   },
 ];
 
