@@ -16,6 +16,12 @@ import {
   Camera,
   Shield,
   Film,
+  ChevronDown,
+  Eraser,
+  ZoomIn,
+  Wand2,
+  SlidersHorizontal,
+  Clapperboard,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { VERSION } from "@/lib/version";
@@ -30,6 +36,10 @@ const modules = [
     borderColor: "border-green-500/30",
     module: "editor",
     pro: false,
+    subApps: [
+      { title: "Editor de Video", description: "Corte, timeline, legendas", href: "/editor" },
+      { title: "Gerador de Shorts", description: "Crie shorts virais com IA", href: "/shorts" },
+    ],
   },
   {
     title: "Designer de Posts",
@@ -43,13 +53,19 @@ const modules = [
   },
   {
     title: "Editor de Fotos",
-    description: "Filtros, ajustes, chat com IA",
+    description: "Filtros, ajustes, edicao com IA",
     icon: Camera,
     href: "/photos",
     color: "from-orange-500/20 to-orange-600/5",
     borderColor: "border-orange-500/30",
     module: "designer",
     pro: false,
+    subApps: [
+      { title: "Filtros e Ajustes", description: "Brilho, contraste, saturacao", href: "/photos?mode=filters" },
+      { title: "Edicao com IA", description: "Remover fundo, corrigir luz", href: "/photos?mode=ai-edit" },
+      { title: "Remover Watermark", description: "Remova textos e marcas d'agua", href: "/photos?mode=ai-edit&action=watermark" },
+      { title: "Upscaler", description: "Aumente resolucao com IA", href: "/photos?mode=upscale" },
+    ],
   },
   {
     title: "Studio AI",
@@ -91,16 +107,60 @@ const modules = [
     module: "analytics",
     pro: true,
   },
-  {
-    title: "Gerador de Shorts",
-    description: "Crie shorts virais com IA",
-    icon: Film,
-    href: "/shorts",
-    color: "from-purple-500/20 to-purple-600/5",
-    borderColor: "border-purple-500/30",
-    module: "shorts",
-  },
 ];
+
+function ExpandableCard({ mod, accessible, plan }: { mod: typeof modules[number]; accessible: boolean; plan: string }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div
+      className={`relative overflow-hidden rounded-xl border ${mod.borderColor} bg-gradient-to-br ${mod.color} transition-all ${
+        !accessible ? 'opacity-60' : ''
+      }`}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full p-6 text-left group"
+      >
+        <div className="flex items-start gap-4">
+          <div className="rounded-lg bg-zinc-800/50 p-3">
+            <mod.icon className="w-6 h-6 text-zinc-200" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold text-zinc-100">{mod.title}</h2>
+              {mod.pro && plan === 'free' && (
+                <Crown className="w-3.5 h-3.5 text-amber-400" />
+              )}
+            </div>
+            <p className="text-sm text-zinc-400 mt-1">{mod.description}</p>
+          </div>
+          <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform mt-1 shrink-0 ${open ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {open && mod.subApps && (
+        <div className="px-6 pb-4 space-y-1">
+          <div className="border-t border-zinc-700/50 pt-3 space-y-1">
+            {mod.subApps.map((sub) => (
+              <Link
+                key={sub.href}
+                href={sub.href}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group"
+              >
+                <ArrowRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-300 transition-colors" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-zinc-200 group-hover:text-white transition-colors">{sub.title}</p>
+                  <p className="text-[11px] text-zinc-500">{sub.description}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
   const { user, profile, canAccess } = useAuthStore();
@@ -216,6 +276,12 @@ export default function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {modules.map((mod) => {
             const accessible = canAccess(mod.module);
+            const hasSubApps = mod.subApps && mod.subApps.length > 0;
+
+            if (hasSubApps) {
+              return <ExpandableCard key={mod.href} mod={mod} accessible={accessible} plan={plan} />;
+            }
+
             return (
               <Link
                 key={mod.href}
