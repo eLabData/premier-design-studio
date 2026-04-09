@@ -29,7 +29,7 @@ export interface FacelessCaptionSegment {
   text: string
   startFrame: number
   endFrame: number
-  words?: { text: string; startFrame: number; endFrame: number }[]
+  words?: { word: string; startFrame: number; endFrame: number }[]
 }
 
 export interface FacelessShortProps {
