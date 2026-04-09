@@ -177,14 +177,13 @@ export async function POST(req: Request) {
       .from('shorts')
       .insert({
         user_id: user.id,
-        topic: body.topic,
+        title: body.topic || 'Untitled',
         language: body.language,
         format: body.format,
         visual_mode: body.visualMode,
         tts_provider: body.ttsProvider,
-        caption_style: body.captionStyle ?? 'default',
+        caption_style: body.captionStyle ?? 'bold',
         status: 'generating_script',
-        title: body.topic,
         scenes: [],
         captions: [],
         platform_metadata: {},

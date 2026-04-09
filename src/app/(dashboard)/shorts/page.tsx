@@ -226,10 +226,17 @@ export default function ShortsPage() {
         }),
       })
       const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'Erro ao gerar short')
+        setIsGenerating(false)
+        return
+      }
       setShortId(data.shortId)
-      setCurrentShort(data.short ?? { id: data.shortId, status: 'pending' })
+      setCurrentShort(data.short ?? { id: data.shortId, status: 'generating_script' })
       setStep(4)
-    } catch {}
+    } catch (err) {
+      alert('Erro de conexao. Tente novamente.')
+    }
     setIsGenerating(false)
   }
 
