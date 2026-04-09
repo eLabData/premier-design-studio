@@ -5,7 +5,28 @@ on:
     branches: [main]
 
 jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check & build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          NEXT_PUBLIC_OPENROUTER_API_KEY: placeholder
+          NEXT_PUBLIC_APP_URL: https://studio.elabdata.com.br
+        run: npx next build
+
   deploy:
+    needs: build-check
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to VPS

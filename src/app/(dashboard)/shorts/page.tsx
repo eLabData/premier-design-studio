@@ -36,6 +36,16 @@ interface CostEstimate {
   breakdown?: Record<string, unknown>
 }
 
+interface SceneItem {
+  text: string
+  index: number
+  motion: string
+  imageUrl: string
+  imagePrompt?: string
+  startFrame?: number
+  durationFrames?: number
+}
+
 interface ShortItem {
   id: string
   title?: string
@@ -45,8 +55,9 @@ interface ShortItem {
   createdAt?: string
   created_at?: string
   video_url?: string
+  narration_url?: string
   script?: string
-  scenes?: unknown[]
+  scenes?: SceneItem[]
   platform_metadata?: {
     youtube?: { title: string; description: string; hashtags: string[] }
     instagram?: { title: string; description: string; hashtags: string[] }
@@ -706,15 +717,44 @@ export default function ShortsPage() {
                   </div>
                 ) : null}
 
-                {/* Scenes list if no video */}
+                {/* Audio player */}
+                {currentShort.narration_url && (
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 space-y-2">
+                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Narracao</p>
+                    <audio src={currentShort.narration_url} controls className="w-full" />
+                  </div>
+                )}
+
+                {/* Scenes as visual cards */}
                 {!currentShort.video_url && Array.isArray(currentShort.scenes) && currentShort.scenes.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Cenas</p>
-                    {currentShort.scenes.map((scene: unknown, i: number) => (
-                      <div key={i} className="rounded-lg bg-zinc-900 border border-zinc-800 p-3 text-sm text-zinc-400">
-                        {typeof scene === 'string' ? scene : JSON.stringify(scene)}
-                      </div>
-                    ))}
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Cenas ({currentShort.scenes.length})</p>
+                    <div className="grid gap-3">
+                      {currentShort.scenes.map((scene: SceneItem, i: number) => (
+                        <div key={i} className="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden flex flex-col sm:flex-row">
+                          {scene.imageUrl && (
+                            <div className="sm:w-48 sm:min-w-48 h-40 sm:h-auto relative flex-shrink-0">
+                              <img
+                                src={scene.imageUrl}
+                                alt={`Cena ${i + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-[10px] font-bold text-white">
+                                {i + 1}/{currentShort.scenes!.length}
+                              </span>
+                            </div>
+                          )}
+                          <div className="p-3 flex-1 space-y-2">
+                            <p className="text-sm text-zinc-200 leading-relaxed">{scene.text}</p>
+                            {scene.motion && (
+                              <span className="inline-block px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-[10px] font-medium text-purple-300 uppercase tracking-wider">
+                                {scene.motion}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 

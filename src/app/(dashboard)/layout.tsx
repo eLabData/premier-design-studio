@@ -22,7 +22,7 @@ export default function DashboardLayout({
     <div className="flex h-screen overflow-hidden bg-zinc-950">
       <Sidebar />
       {/* On mobile, add top padding to account for the fixed top bar (h ~= 53px) */}
-      <main className="flex-1 overflow-hidden flex flex-col min-w-0 pt-[53px] md:pt-0">
+      <main className="flex-1 overflow-y-auto flex flex-col min-w-0 pt-[53px] md:pt-0">
         {children}
       </main>
     </div>
