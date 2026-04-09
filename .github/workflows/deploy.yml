@@ -46,6 +46,8 @@ jobs:
             TIKTOK_CLIENT_SECRET=${{ secrets.TIKTOK_CLIENT_SECRET }}
             LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}
             LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }}
+            FAL_AI_KEY=${{ secrets.FAL_AI_KEY }}
+            FAL_AI_ADMIN_KEY=${{ secrets.FAL_AI_ADMIN_KEY }}
             ENVEOF
 
             # Build and restart

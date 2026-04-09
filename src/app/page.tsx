@@ -14,6 +14,7 @@ import {
   LogIn,
   ArrowRight,
   Camera,
+  Shield,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { VERSION } from "@/lib/version";
@@ -262,6 +263,30 @@ export default function Home() {
 
         {/* Social connections quick view */}
         <DashboardConnections />
+
+        {/* Admin section — super admin only */}
+        {user.email === 'rafael@elabdata.com.br' && (
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-red-400 uppercase tracking-wider">Admin</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Link
+                href="/admin/fal"
+                className="group relative overflow-hidden rounded-xl border border-red-500/30 bg-gradient-to-br from-red-500/20 to-red-600/5 p-6 transition-all hover:scale-[1.02] hover:shadow-lg"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg bg-red-900/50 p-3">
+                    <Shield className="w-6 h-6 text-red-300" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-semibold text-zinc-100">fal.ai Admin</h2>
+                    <p className="text-sm text-zinc-400 mt-1">Billing, uso, API keys</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors mt-1 shrink-0" />
+                </div>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Version footer */}
         <p className="text-center text-[10px] text-zinc-700 pt-4">

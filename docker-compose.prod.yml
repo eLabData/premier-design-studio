@@ -30,6 +30,8 @@ services:
       - LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID}
       - LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET}
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - FAL_AI_KEY=${FAL_AI_KEY}
+      - FAL_AI_ADMIN_KEY=${FAL_AI_ADMIN_KEY}
     networks:
       - shared-proxy-network
 

@@ -295,6 +295,13 @@ export default function ConnectionsPage() {
                       )}
                     </div>
                     <span className="text-xs text-zinc-500">{info?.name ?? integration.provider}</span>
+                    <button
+                      onClick={() => handleDisconnect(integration.id)}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-500/40 text-xs transition-colors"
+                      title="Remover conta"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                     {integration.refresh_needed && (
                       <span className="text-[10px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded-full">
                         Reconectar
