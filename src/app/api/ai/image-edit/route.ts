@@ -30,10 +30,11 @@ export async function POST(req: Request) {
       imageData?: string
       model?: string
       outputFormat?: string
+      image_size?: { width: number; height: number }
       extraParams?: Record<string, unknown>
     }
 
-    const { prompt, imageData, model = 'kontext-pro', outputFormat = 'png', extraParams } = body
+    const { prompt, imageData, model = 'kontext-pro', outputFormat = 'png', image_size, extraParams } = body
 
     if (!prompt && !UPSCALE_MODELS.has(model)) {
       return NextResponse.json({ error: 'prompt obrigatorio' }, { status: 400 })
@@ -70,6 +71,11 @@ export async function POST(req: Request) {
       num_images: 1,
       output_format: outputFormat,
       ...extraParams,
+    }
+
+    // Pass image_size for models that support it (schnell, etc)
+    if (image_size && !UPSCALE_MODELS.has(model)) {
+      falBody.image_size = image_size
     }
 
     // Models that take image input

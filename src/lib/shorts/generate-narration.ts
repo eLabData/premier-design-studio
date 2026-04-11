@@ -49,7 +49,7 @@ async function generateMiniMaxTTS(
         vol: 1.0,
         pitch: 0,
       },
-      output_format: 'mp3',
+      output_format: 'url',
     }),
   })
 
