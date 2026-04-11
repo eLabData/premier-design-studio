@@ -67,9 +67,10 @@ export async function PATCH(
 
     const supabase = createSupabaseAdmin()
 
-    // Only allow updating scenes (for image regeneration)
+    // Only allow updating scenes and narration_url
     const updateData: Record<string, unknown> = {}
     if (body.scenes) updateData.scenes = body.scenes
+    if (body.narration_url) updateData.narration_url = body.narration_url
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'Nada para atualizar' }, { status: 400 })

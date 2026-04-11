@@ -146,6 +146,7 @@ export default function ShortsPage() {
   const [currentShort, setCurrentShort] = useState<ShortItem | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [regeneratingScene, setRegeneratingScene] = useState<number | null>(null)
+  const [regeneratingAudio, setRegeneratingAudio] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
   // Gallery
@@ -315,6 +316,30 @@ export default function ShortsPage() {
       alert('Erro ao regenerar imagem. Tente novamente.')
     }
     setRegeneratingScene(null)
+  }
+
+  const regenerateAudio = async () => {
+    if (!currentShort?.script || !shortId) return
+    setRegeneratingAudio(true)
+    try {
+      const res = await fetch('/api/ai/shorts/regenerate-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shortId,
+          text: currentShort.script,
+          language: currentShort.language || language,
+        }),
+      })
+      if (!res.ok) throw new Error('Falha ao regenerar audio')
+      const data = await res.json()
+      if (data.narration_url) {
+        setCurrentShort({ ...currentShort, narration_url: data.narration_url })
+      }
+    } catch {
+      alert('Erro ao regenerar audio. Tente novamente.')
+    }
+    setRegeneratingAudio(false)
   }
 
   const openShort = (s: ShortItem) => {
@@ -821,7 +846,21 @@ export default function ShortsPage() {
                 {/* Audio player */}
                 {currentShort.narration_url && (
                   <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 space-y-2">
-                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Narracao</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Narracao</p>
+                      <button
+                        onClick={regenerateAudio}
+                        disabled={regeneratingAudio}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-800 border border-zinc-700 text-[11px] font-medium text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors disabled:opacity-50"
+                      >
+                        {regeneratingAudio ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="w-3 h-3" />
+                        )}
+                        Regenerar audio
+                      </button>
+                    </div>
                     <audio src={currentShort.narration_url} controls className="w-full" />
                   </div>
                 )}

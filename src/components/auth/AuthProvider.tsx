@@ -1,64 +1,63 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAuthStore } from '@/lib/auth-store'
 import { createSupabaseBrowser } from '@/lib/supabase-browser'
 import { SUPER_ADMIN_EMAIL } from '@/lib/shorts-config'
+import type { Profile } from '@/lib/auth-store'
 
-function applyAdminOverride(profile: Record<string, unknown> | null, email?: string) {
-  if (!profile) return profile
-  if (email === SUPER_ADMIN_EMAIL) {
-    return { ...profile, plan: 'pro' }
+function buildProfile(data: Record<string, unknown> | null, email?: string | null): Profile {
+  const base: Profile = {
+    id: (data?.id as string) ?? '',
+    email: (data?.email as string) ?? email ?? '',
+    full_name: (data?.full_name as string) ?? null,
+    avatar_url: (data?.avatar_url as string) ?? null,
+    plan: (data?.plan as Profile['plan']) ?? 'free',
+    stripe_customer_id: (data?.stripe_customer_id as string) ?? null,
+    stripe_subscription_id: (data?.stripe_subscription_id as string) ?? null,
   }
-  return profile
+  // Super admin always gets pro
+  if (email === SUPER_ADMIN_EMAIL) {
+    base.plan = 'pro'
+  }
+  return base
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setProfile, setLoading } = useAuthStore()
+  const initialized = useRef(false)
 
   useEffect(() => {
     const supabase = createSupabaseBrowser()
 
-    // Get initial session
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      setUser(user)
-      if (user) {
-        const fallbackProfile = {
-          id: user.id, email: user.email, full_name: null, avatar_url: null,
-          plan: 'free', stripe_customer_id: null, stripe_subscription_id: null,
-        }
-        try {
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single()
-          setProfile(applyAdminOverride(data || fallbackProfile, user.email ?? undefined) as never)
-        } catch {
-          // If profiles query fails (RLS, network), still set profile with admin override
-          setProfile(applyAdminOverride(fallbackProfile, user.email ?? undefined) as never)
-        }
-      }
-      setLoading(false)
-    })
+    // Single listener handles EVERYTHING: initial session + changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        const user = session?.user ?? null
+        setUser(user)
 
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-        if (data) {
-          setProfile(applyAdminOverride(data, session.user.email) as never)
+        if (user) {
+          try {
+            const { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', user.id)
+              .single()
+            setProfile(buildProfile(data, user.email))
+          } catch {
+            // Query failed — still set profile with admin override
+            setProfile(buildProfile(null, user.email))
+          }
+        } else {
+          setProfile(null)
         }
-      } else {
-        setProfile(null)
+
+        // Only set loading false on first event
+        if (!initialized.current) {
+          initialized.current = true
+          setLoading(false)
+        }
       }
-    })
+    )
 
     return () => subscription.unsubscribe()
   }, [setUser, setProfile, setLoading])
