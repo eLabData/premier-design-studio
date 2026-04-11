@@ -784,6 +784,7 @@ export default function ShortsPage() {
                         <div className="flex justify-center">
                           <div className="rounded-xl overflow-hidden border border-zinc-800" style={{ width: 360, height: 640 }}>
                             <Player
+                              acknowledgeRemotionLicense
                               component={FacelessShort}
                               inputProps={{
                                 scenes: playerScenes,

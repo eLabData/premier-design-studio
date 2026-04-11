@@ -201,15 +201,33 @@ export function FacelessShort({
           const isFirst = i === 0
           const isLast = i === scenes.length - 1
 
-          const fadeInEnd = isFirst ? 0 : CROSSFADE_FRAMES
           const fadeOutStart = isLast ? scene.durationFrames : scene.durationFrames - CROSSFADE_FRAMES
 
-          const sceneOpacity = interpolate(
-            localFrame,
-            [0, fadeInEnd, fadeOutStart, scene.durationFrames],
-            [isFirst ? 1 : 0, 1, 1, isLast ? 1 : 0],
-            { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
-          )
+          let sceneOpacity = 1
+          if (isFirst && isLast) {
+            sceneOpacity = 1
+          } else if (isFirst) {
+            sceneOpacity = interpolate(
+              localFrame,
+              [fadeOutStart, scene.durationFrames],
+              [1, 0],
+              { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+            )
+          } else if (isLast) {
+            sceneOpacity = interpolate(
+              localFrame,
+              [0, CROSSFADE_FRAMES],
+              [0, 1],
+              { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+            )
+          } else {
+            sceneOpacity = interpolate(
+              localFrame,
+              [0, CROSSFADE_FRAMES, fadeOutStart, scene.durationFrames],
+              [0, 1, 1, 0],
+              { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+            )
+          }
 
           // Only render visible scenes
           if (frame < sceneStart - CROSSFADE_FRAMES || frame > sceneEnd + CROSSFADE_FRAMES) {

@@ -57,21 +57,18 @@ export async function GET() {
     const combined = users.map((u) => {
       const jStats = jobsByUser.get(u.id)
       const sStats = shortsByUser.get(u.id)
+      const aiCost = Math.round((jStats?.total_cost || 0) * 10000) / 10000
+      const shortsCost = Math.round((sStats?.total_cost || 0) * 10000) / 10000
       return {
         id: u.id,
         email: u.email,
         created_at: u.created_at,
         last_sign_in_at: u.last_sign_in_at,
-        ai_jobs: {
-          count: jStats?.count || 0,
-          total_cost_usd: Math.round((jStats?.total_cost || 0) * 10000) / 10000,
-          last_job_at: jStats?.last_date || null,
-        },
-        shorts: {
-          count: sStats?.count || 0,
-          total_cost_usd: Math.round((sStats?.total_cost || 0) * 10000) / 10000,
-          last_short_at: sStats?.last_date || null,
-        },
+        ai_jobs_count: jStats?.count || 0,
+        ai_jobs_cost: aiCost,
+        shorts_count: sStats?.count || 0,
+        shorts_cost: shortsCost,
+        total_cost: aiCost + shortsCost,
       }
     })
 

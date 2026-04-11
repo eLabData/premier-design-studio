@@ -97,7 +97,7 @@ export default function AdminUsersPage() {
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Link
-          href="/admin"
+          href="/"
           className="flex items-center gap-1 text-zinc-400 hover:text-white transition-colors text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
