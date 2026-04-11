@@ -1,6 +1,17 @@
 import { NextResponse } from 'next/server'
+import { createSupabaseServer } from '@/lib/supabase-server'
+import { SUPER_ADMIN_EMAIL } from '@/lib/shorts-config'
 
 const FAL_API = 'https://api.fal.ai'
+
+async function requireAdmin() {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.email !== SUPER_ADMIN_EMAIL) {
+    return null
+  }
+  return user
+}
 
 async function falAdmin(path: string, method = 'GET', body?: unknown) {
   const key = process.env.FAL_AI_ADMIN_KEY
@@ -29,7 +40,9 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const action = searchParams.get('action')
 
-  // TODO: add auth check for super admin only
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   try {
     switch (action) {
       case 'billing': {
@@ -72,6 +85,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   const { searchParams } = new URL(req.url)
   const action = searchParams.get('action')
 

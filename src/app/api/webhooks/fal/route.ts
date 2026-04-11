@@ -64,13 +64,15 @@ export async function POST(req: Request) {
     const signature = req.headers.get('x-fal-signature') ?? ''
     const keyId = req.headers.get('x-fal-key-id') ?? ''
 
-    // Verify webhook signature
-    if (signature && keyId) {
-      const valid = await verifySignature(body, signature, keyId)
-      if (!valid) {
-        console.error('[webhooks/fal] invalid signature')
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-      }
+    // Verify webhook signature — REQUIRED
+    if (!signature || !keyId) {
+      console.error('[webhooks/fal] missing signature headers')
+      return NextResponse.json({ error: 'Missing signature' }, { status: 401 })
+    }
+    const valid = await verifySignature(body, signature, keyId)
+    if (!valid) {
+      console.error('[webhooks/fal] invalid signature')
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
     const payload = JSON.parse(body) as {

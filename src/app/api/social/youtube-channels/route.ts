@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server'
 import { google } from 'googleapis'
+import { createSupabaseServer } from '@/lib/supabase-server'
 
 /**
  * List YouTube channels accessible by the given access token.
  * Called from the channel selector page.
  */
 export async function POST(req: Request) {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Nao autenticado' }, { status: 401 })
+  }
+
   const { accessToken } = await req.json() as { accessToken: string }
 
   const client = new google.auth.OAuth2(

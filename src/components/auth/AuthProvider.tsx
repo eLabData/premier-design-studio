@@ -2,8 +2,7 @@
 import { useEffect } from 'react'
 import { useAuthStore } from '@/lib/auth-store'
 import { createSupabaseBrowser } from '@/lib/supabase-browser'
-
-const SUPER_ADMIN_EMAIL = 'rafael@elabdata.com.br'
+import { SUPER_ADMIN_EMAIL } from '@/lib/shorts-config'
 
 function applyAdminOverride(profile: Record<string, unknown> | null, email?: string) {
   if (!profile) return profile

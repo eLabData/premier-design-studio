@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createSupabaseServer } from '@/lib/supabase-server'
 
 const FAL_MODELS: Record<string, { id: string; costUsd: number }> = {
   'kontext-pro': { id: 'fal-ai/flux-pro/kontext', costUsd: 0.05 },
@@ -15,6 +16,12 @@ const UPSCALE_MODELS = new Set(['real-esrgan', 'creative-upscaler', 'aura-sr', '
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createSupabaseServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Nao autenticado' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(req.url)
     const useAsync = searchParams.get('async') === 'true'
 

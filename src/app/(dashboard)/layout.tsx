@@ -1,4 +1,6 @@
 'use client'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/auth-store'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Loader2 } from 'lucide-react'
@@ -8,9 +10,16 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { loading } = useAuthStore()
+  const { loading, user } = useAuthStore()
+  const router = useRouter()
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login')
+    }
+  }, [loading, user, router])
+
+  if (loading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-zinc-950">
         <Loader2 className="w-6 h-6 text-green-500 animate-spin" />

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createSupabaseServer } from '@/lib/supabase-server'
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   video:
@@ -11,6 +12,12 @@ const SYSTEM_PROMPTS: Record<string, string> = {
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createSupabaseServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Nao autenticado' }, { status: 401 })
+    }
+
     const body = (await req.json()) as {
       messages: { role: string; content: unknown }[]
       context: string
