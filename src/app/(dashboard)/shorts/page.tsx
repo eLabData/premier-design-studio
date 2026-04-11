@@ -151,9 +151,13 @@ export default function ShortsPage() {
 
   // Image regen modal
   const [regenModalScene, setRegenModalScene] = useState<number | null>(null)
+  const [regenTab, setRegenTab] = useState<'upload' | 'stock' | 'ai'>('stock')
   const [regenPrompt, setRegenPrompt] = useState('')
   const [regenModel, setRegenModel] = useState<'schnell' | 'kontext-pro'>('kontext-pro')
   const [regenBaseImage, setRegenBaseImage] = useState<string | null>(null)
+  const [stockQuery, setStockQuery] = useState('')
+  const [stockResults, setStockResults] = useState<Array<{ id: number; url: string; urlLarge: string; alt: string; photographer: string }>>([])
+  const [stockLoading, setStockLoading] = useState(false)
 
   // Gallery
   const [shorts, setShorts] = useState<ShortItem[]>([])
@@ -293,9 +297,12 @@ export default function ShortsPage() {
   const openRegenModal = (sceneIndex: number) => {
     const scene = currentShort?.scenes?.[sceneIndex]
     setRegenModalScene(sceneIndex)
+    setRegenTab('stock')
     setRegenPrompt(scene?.imagePrompt || scene?.text || '')
+    setStockQuery(scene?.imagePrompt || scene?.text || '')
     setRegenModel('kontext-pro')
     setRegenBaseImage(null)
+    setStockResults([])
   }
 
   const regenerateSceneImage = async () => {
@@ -349,6 +356,59 @@ export default function ShortsPage() {
     const reader = new FileReader()
     reader.onload = () => setRegenBaseImage(reader.result as string)
     reader.readAsDataURL(file)
+  }
+
+  const handleDirectUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || regenModalScene === null || !currentShort?.scenes || !shortId) return
+    setRegeneratingScene(regenModalScene)
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const dataUrl = reader.result as string
+      const updatedScenes = [...currentShort.scenes!]
+      updatedScenes[regenModalScene] = { ...updatedScenes[regenModalScene], imageUrl: dataUrl }
+      setCurrentShort({ ...currentShort, scenes: updatedScenes })
+      await fetch(`/api/ai/shorts/${shortId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenes: updatedScenes }),
+      })
+      setRegeneratingScene(null)
+      setRegenModalScene(null)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const searchStock = async () => {
+    if (!stockQuery.trim()) return
+    setStockLoading(true)
+    try {
+      const res = await fetch('/api/ai/pexels-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: stockQuery, orientation: 'portrait', per_page: 8 }),
+      })
+      const data = await res.json()
+      setStockResults(data.photos ?? [])
+    } catch {
+      setStockResults([])
+    }
+    setStockLoading(false)
+  }
+
+  const selectStockImage = async (imageUrl: string) => {
+    if (regenModalScene === null || !currentShort?.scenes || !shortId) return
+    setRegeneratingScene(regenModalScene)
+    const updatedScenes = [...currentShort.scenes]
+    updatedScenes[regenModalScene] = { ...updatedScenes[regenModalScene], imageUrl }
+    setCurrentShort({ ...currentShort, scenes: updatedScenes })
+    await fetch(`/api/ai/shorts/${shortId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scenes: updatedScenes }),
+    })
+    setRegeneratingScene(null)
+    setRegenModalScene(null)
   }
 
   const regenerateAudio = async () => {
@@ -1119,102 +1179,151 @@ export default function ShortsPage() {
         </div>
       </div>
 
-      {/* ── Image Regeneration Modal ─────────────────────────────────────── */}
+      {/* ── Image Source Modal ────────────────────────────────────────────── */}
       {regenModalScene !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-zinc-900 border border-zinc-700 shadow-2xl p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-xl rounded-2xl bg-zinc-900 border border-zinc-700 shadow-2xl p-5 space-y-4 my-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-white">Gerar Nova Imagem — Cena {regenModalScene + 1}</h3>
-              <button onClick={() => setRegenModalScene(null)} className="text-zinc-500 hover:text-white text-lg">✕</button>
+              <h3 className="text-base font-semibold text-white">Trocar Imagem — Cena {regenModalScene + 1}</h3>
+              <button onClick={() => { if (regeneratingScene === null) setRegenModalScene(null) }} className="text-zinc-500 hover:text-white text-lg">✕</button>
             </div>
 
             {/* Current image preview */}
             {currentShort?.scenes?.[regenModalScene]?.imageUrl && (
-              <div className="rounded-lg overflow-hidden h-32">
+              <div className="rounded-lg overflow-hidden h-24">
                 <img src={currentShort.scenes[regenModalScene].imageUrl} alt="Atual" className="w-full h-full object-cover" />
               </div>
             )}
 
-            {/* Prompt */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-400">Prompt da imagem</label>
-              <textarea
-                value={regenPrompt}
-                onChange={(e) => setRegenPrompt(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
-                placeholder="Descreva a imagem que deseja..."
-              />
-            </div>
-
-            {/* Model selector */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-400">Modelo</label>
-              <div className="flex gap-2">
+            {/* Tabs */}
+            <div className="flex border-b border-zinc-800">
+              {([['stock', 'Buscar Stock'], ['upload', 'Upload'], ['ai', 'Gerar com IA']] as const).map(([key, label]) => (
                 <button
-                  onClick={() => setRegenModel('kontext-pro')}
-                  className={`flex-1 px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
-                    regenModel === 'kontext-pro' ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-zinc-700 bg-zinc-800 text-zinc-400'
+                  key={key}
+                  onClick={() => setRegenTab(key)}
+                  className={`flex-1 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors ${
+                    regenTab === key ? 'border-purple-500 text-purple-300' : 'border-transparent text-zinc-500 hover:text-zinc-300'
                   }`}
                 >
-                  Kontext Pro — Realista ($0.05)
+                  {label}
                 </button>
-                <button
-                  onClick={() => setRegenModel('schnell')}
-                  className={`flex-1 px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
-                    regenModel === 'schnell' ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-zinc-700 bg-zinc-800 text-zinc-400'
-                  }`}
-                >
-                  Schnell — Rapido ($0.003)
-                </button>
-              </div>
+              ))}
             </div>
 
-            {/* Upload base image — always available */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-400">Imagem de referencia (opcional)</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleBaseImageUpload}
-                className="w-full text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-zinc-700 file:bg-zinc-800 file:text-zinc-300 file:text-xs file:font-medium hover:file:bg-zinc-700 file:cursor-pointer"
-              />
-              {regenBaseImage && (
-                <div className="flex items-center gap-2">
-                  <div className="rounded-lg overflow-hidden h-16 w-16 flex-shrink-0">
-                    <img src={regenBaseImage} alt="Base" className="w-full h-full object-cover" />
-                  </div>
-                  <button onClick={() => setRegenBaseImage(null)} className="text-xs text-red-400 hover:text-red-300">Remover</button>
+            {/* ── Tab: Stock Search ─────────────────────────── */}
+            {regenTab === 'stock' && (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    value={stockQuery}
+                    onChange={(e) => setStockQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && searchStock()}
+                    placeholder="Ex: person holding iPhone, settings screen..."
+                    className="flex-1 px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  />
+                  <button
+                    onClick={searchStock}
+                    disabled={stockLoading || !stockQuery.trim()}
+                    className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-sm font-medium text-white transition-colors"
+                  >
+                    {stockLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Buscar'}
+                  </button>
                 </div>
-              )}
-            </div>
-
-            {/* Loading state inside modal */}
-            {regeneratingScene !== null && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
-                <p className="text-sm text-purple-300">Gerando imagem com {regenModel === 'kontext-pro' ? 'Kontext Pro' : 'Schnell'}...</p>
+                {stockResults.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 max-h-60 overflow-y-auto">
+                    {stockResults.map((photo) => (
+                      <button
+                        key={photo.id}
+                        onClick={() => selectStockImage(photo.url)}
+                        className="rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-500 transition-colors aspect-[9/16] relative group"
+                      >
+                        <img src={photo.url} alt={photo.alt} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1">
+                          <span className="text-[9px] text-white truncate">{photo.photographer}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {stockResults.length === 0 && !stockLoading && (
+                  <p className="text-xs text-zinc-600 text-center py-4">Busque por imagens reais de alta qualidade (Pexels)</p>
+                )}
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => { if (regeneratingScene === null) setRegenModalScene(null) }}
-                disabled={regeneratingScene !== null}
-                className="flex-1 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={regenerateSceneImage}
-                disabled={regeneratingScene !== null || !regenPrompt.trim()}
-                className="flex-1 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-sm font-medium text-white transition-colors flex items-center justify-center gap-2"
-              >
-                {regeneratingScene !== null ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                Gerar
-              </button>
-            </div>
+            {/* ── Tab: Upload ──────────────────────────────── */}
+            {regenTab === 'upload' && (
+              <div className="space-y-3">
+                <p className="text-xs text-zinc-400">Suba um screenshot, foto ou imagem pronta pra usar nesta cena.</p>
+                <label className="flex flex-col items-center justify-center gap-2 p-8 rounded-xl border-2 border-dashed border-zinc-700 hover:border-purple-500 cursor-pointer transition-colors">
+                  <Image className="w-8 h-8 text-zinc-500" />
+                  <span className="text-sm text-zinc-400">Clique para selecionar imagem</span>
+                  <span className="text-[10px] text-zinc-600">PNG, JPG, WebP</span>
+                  <input type="file" accept="image/*" onChange={handleDirectUpload} className="hidden" />
+                </label>
+              </div>
+            )}
+
+            {/* ── Tab: AI Generate ─────────────────────────── */}
+            {regenTab === 'ai' && (
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-zinc-400">Prompt</label>
+                  <textarea
+                    value={regenPrompt}
+                    onChange={(e) => setRegenPrompt(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
+                    placeholder="Descreva a imagem..."
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setRegenModel('kontext-pro')}
+                    className={`flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                      regenModel === 'kontext-pro' ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-zinc-700 bg-zinc-800 text-zinc-400'
+                    }`}
+                  >
+                    Kontext Pro ($0.05)
+                  </button>
+                  <button
+                    onClick={() => setRegenModel('schnell')}
+                    className={`flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                      regenModel === 'schnell' ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-zinc-700 bg-zinc-800 text-zinc-400'
+                    }`}
+                  >
+                    Schnell ($0.003)
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-zinc-400">Imagem base (opcional)</label>
+                  <input type="file" accept="image/*" onChange={handleBaseImageUpload}
+                    className="w-full text-xs text-zinc-400 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border file:border-zinc-700 file:bg-zinc-800 file:text-zinc-300 file:text-xs hover:file:bg-zinc-700 file:cursor-pointer" />
+                  {regenBaseImage && (
+                    <div className="flex items-center gap-2">
+                      <div className="rounded-lg overflow-hidden h-12 w-12"><img src={regenBaseImage} alt="Base" className="w-full h-full object-cover" /></div>
+                      <button onClick={() => setRegenBaseImage(null)} className="text-xs text-red-400">Remover</button>
+                    </div>
+                  )}
+                </div>
+
+                {regeneratingScene !== null && (
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                    <p className="text-sm text-purple-300">Gerando...</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={regenerateSceneImage}
+                  disabled={regeneratingScene !== null || !regenPrompt.trim()}
+                  className="w-full px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-sm font-medium text-white transition-colors flex items-center justify-center gap-2"
+                >
+                  {regeneratingScene !== null ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                  Gerar com IA
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
