@@ -17,7 +17,7 @@ function buildProfile(data: Record<string, unknown> | null, email?: string | nul
   }
   // Super admin always gets pro
   if (email === SUPER_ADMIN_EMAIL) {
-    base.plan = 'pro'
+    base.plan = 'business'
   }
   return base
 }

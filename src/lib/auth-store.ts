@@ -49,6 +49,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     const p = get().profile?.plan
     return p === 'pro' || p === 'business'
   },
+  isAdmin: () => get().profile?.email === 'rafael@elabdata.com.br',
   isBusiness: () => get().profile?.plan === 'business',
   canAccess: (module: string) => {
     const plan = get().profile?.plan ?? 'free'

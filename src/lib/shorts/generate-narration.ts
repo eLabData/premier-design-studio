@@ -59,12 +59,14 @@ async function generateMiniMaxTTS(
   }
 
   const data = await response.json()
-  const audioUrl = data.audio?.url ?? data.audio_file?.url ?? ''
-  const wordCount = text.split(/\s+/).length
-  const durationSec = Math.ceil((wordCount / 150) * 60)
+  const audioUrl = data.audio?.url ?? ''
+  if (!audioUrl) {
+    throw new Error(`MiniMax TTS returned no audio URL. Response: ${JSON.stringify(data).slice(0, 500)}`)
+  }
+  const durationSec = data.duration_ms ? Math.ceil(data.duration_ms / 1000) : Math.ceil((text.split(/\s+/).length / 150) * 60)
 
   // $0.10 per 1000 chars
-  const costUsd = Math.ceil(text.length / 1000) * 0.10
+  const costUsd = Math.max(0.01, Math.ceil(text.length / 1000) * 0.10)
 
   return { audioUrl, durationSec, costUsd }
 }

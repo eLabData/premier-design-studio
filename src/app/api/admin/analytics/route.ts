@@ -16,7 +16,7 @@ export async function GET() {
 
     // Fetch all ai_jobs and shorts in parallel
     const [jobsRes, shortsRes] = await Promise.all([
-      admin.from('ai_jobs').select('id, user_id, model, module, cost_usd, status, created_at, input_data, output_data').order('created_at', { ascending: false }),
+      admin.from('ai_jobs').select('id, user_id, model, module, cost_usd, status, created_at').order('created_at', { ascending: false }),
       admin.from('shorts').select('id, user_id, cost_usd, cost_breakdown, status, created_at, title').order('created_at', { ascending: false }),
     ])
 
