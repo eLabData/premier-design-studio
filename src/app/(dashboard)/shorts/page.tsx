@@ -149,6 +149,12 @@ export default function ShortsPage() {
   const [regeneratingAudio, setRegeneratingAudio] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
+  // Image regen modal
+  const [regenModalScene, setRegenModalScene] = useState<number | null>(null)
+  const [regenPrompt, setRegenPrompt] = useState('')
+  const [regenModel, setRegenModel] = useState<'schnell' | 'kontext-pro'>('schnell')
+  const [regenBaseImage, setRegenBaseImage] = useState<string | null>(null)
+
   // Gallery
   const [shorts, setShorts] = useState<ShortItem[]>([])
   const [loadingShorts, setLoadingShorts] = useState(false)
@@ -284,38 +290,64 @@ export default function ShortsPage() {
     setIsGenerating(false)
   }
 
-  const regenerateSceneImage = async (sceneIndex: number) => {
-    if (!currentShort?.scenes?.[sceneIndex] || !shortId) return
+  const openRegenModal = (sceneIndex: number) => {
+    const scene = currentShort?.scenes?.[sceneIndex]
+    setRegenModalScene(sceneIndex)
+    setRegenPrompt(scene?.imagePrompt || scene?.text || '')
+    setRegenModel('schnell')
+    setRegenBaseImage(null)
+  }
+
+  const regenerateSceneImage = async () => {
+    if (regenModalScene === null || !currentShort?.scenes?.[regenModalScene] || !shortId) return
+    const sceneIndex = regenModalScene
     setRegeneratingScene(sceneIndex)
     try {
-      const scene = currentShort.scenes[sceneIndex]
+      const prompt = `${regenPrompt}. Do NOT include any text, words, or letters in the image.`
+
+      const body: Record<string, unknown> = {
+        model: regenModel,
+        prompt,
+      }
+
+      if (regenModel === 'kontext-pro' && regenBaseImage) {
+        // Use base image with Kontext for editing
+        body.imageData = regenBaseImage
+      } else {
+        body.image_size = { width: 1080, height: 1920 }
+      }
+
       const res = await fetch('/api/ai/image-edit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'schnell',
-          prompt: `${scene.imagePrompt || scene.text}. Do NOT include any text, words, or letters in the image.`,
-          image_size: { width: 1080, height: 1920 },
-        }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error('Falha ao regenerar imagem')
       const data = await res.json()
       const newImageUrl = data.imageUrl || data.images?.[0]?.url
       if (newImageUrl) {
-        const updatedScenes = [...currentShort.scenes]
+        const updatedScenes = [...currentShort.scenes!]
         updatedScenes[sceneIndex] = { ...updatedScenes[sceneIndex], imageUrl: newImageUrl }
         setCurrentShort({ ...currentShort, scenes: updatedScenes })
-        // Persist to DB
         await fetch(`/api/ai/shorts/${shortId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ scenes: updatedScenes }),
         })
       }
-    } catch (err) {
+      setRegenModalScene(null)
+    } catch {
       alert('Erro ao regenerar imagem. Tente novamente.')
     }
     setRegeneratingScene(null)
+  }
+
+  const handleBaseImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setRegenBaseImage(reader.result as string)
+    reader.readAsDataURL(file)
   }
 
   const regenerateAudio = async () => {
@@ -893,16 +925,16 @@ export default function ShortsPage() {
                                 </span>
                               )}
                               <button
-                                onClick={() => regenerateSceneImage(i)}
+                                onClick={() => openRegenModal(i)}
                                 disabled={regeneratingScene === i}
                                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-[10px] font-medium text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors disabled:opacity-50"
                               >
                                 {regeneratingScene === i ? (
                                   <Loader2 className="w-3 h-3 animate-spin" />
                                 ) : (
-                                  <RotateCcw className="w-3 h-3" />
+                                  <Wand2 className="w-3 h-3" />
                                 )}
-                                Regenerar imagem
+                                Gerar nova imagem
                               </button>
                             </div>
                           </div>
@@ -1075,6 +1107,96 @@ export default function ShortsPage() {
           )}
         </div>
       </div>
+
+      {/* ── Image Regeneration Modal ─────────────────────────────────────── */}
+      {regenModalScene !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-zinc-900 border border-zinc-700 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-white">Gerar Nova Imagem — Cena {regenModalScene + 1}</h3>
+              <button onClick={() => setRegenModalScene(null)} className="text-zinc-500 hover:text-white text-lg">✕</button>
+            </div>
+
+            {/* Current image preview */}
+            {currentShort?.scenes?.[regenModalScene]?.imageUrl && (
+              <div className="rounded-lg overflow-hidden h-32">
+                <img src={currentShort.scenes[regenModalScene].imageUrl} alt="Atual" className="w-full h-full object-cover" />
+              </div>
+            )}
+
+            {/* Prompt */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-400">Prompt da imagem</label>
+              <textarea
+                value={regenPrompt}
+                onChange={(e) => setRegenPrompt(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
+                placeholder="Descreva a imagem que deseja..."
+              />
+            </div>
+
+            {/* Model selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-400">Modelo</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setRegenModel('schnell'); setRegenBaseImage(null) }}
+                  className={`flex-1 px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                    regenModel === 'schnell' ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-zinc-700 bg-zinc-800 text-zinc-400'
+                  }`}
+                >
+                  FLUX Schnell — Rapido ($0.003)
+                </button>
+                <button
+                  onClick={() => setRegenModel('kontext-pro')}
+                  className={`flex-1 px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                    regenModel === 'kontext-pro' ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-zinc-700 bg-zinc-800 text-zinc-400'
+                  }`}
+                >
+                  FLUX Kontext — Edicao ($0.05)
+                </button>
+              </div>
+            </div>
+
+            {/* Upload base image (only for Kontext) */}
+            {regenModel === 'kontext-pro' && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-zinc-400">Imagem base (opcional)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBaseImageUpload}
+                  className="w-full text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-zinc-700 file:bg-zinc-800 file:text-zinc-300 file:text-xs file:font-medium hover:file:bg-zinc-700 file:cursor-pointer"
+                />
+                {regenBaseImage && (
+                  <div className="rounded-lg overflow-hidden h-20 w-20">
+                    <img src={regenBaseImage} alt="Base" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setRegenModalScene(null)}
+                className="flex-1 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={regenerateSceneImage}
+                disabled={regeneratingScene !== null || !regenPrompt.trim()}
+                className="flex-1 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-sm font-medium text-white transition-colors flex items-center justify-center gap-2"
+              >
+                {regeneratingScene !== null ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                Gerar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
