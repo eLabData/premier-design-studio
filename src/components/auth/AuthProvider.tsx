@@ -26,56 +26,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setProfile, setLoading } = useAuthStore()
   const initialized = useRef(false)
 
-  const loadProfile = useCallback(async (user: User) => {
+  const loadProfile = useCallback((user: User) => {
+    // Set a basic profile IMMEDIATELY so the app doesn't block
+    const immediateProfile = buildProfile(null, user.email)
+    setProfile(immediateProfile)
+
+    // Then try to enrich with DB data (non-blocking)
     const supabase = createSupabaseBrowser()
-    const { data, error } = await supabase
+    supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single()
-
-    if (error) {
-      console.warn('[AuthProvider] profiles query error:', error.message, '— using fallback')
-    }
-
-    const profile = buildProfile(data, user.email)
-    console.log('[AuthProvider] Setting profile:', user.email, 'plan:', profile.plan)
-    setProfile(profile)
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn('[AuthProvider] profiles query error:', error.message)
+        }
+        if (data) {
+          setProfile(buildProfile(data, user.email))
+        }
+      })
   }, [setProfile])
 
   useEffect(() => {
     const supabase = createSupabaseBrowser()
 
-    // 1. Try getUser immediately (works if proxy refreshed the cookies)
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (user) {
-        console.log('[AuthProvider] getUser found:', user.email)
-        setUser(user)
-        await loadProfile(user)
-      } else {
-        console.log('[AuthProvider] getUser: no user')
-        setUser(null)
-        setProfile(null)
-      }
-      if (!initialized.current) {
-        initialized.current = true
-        setLoading(false)
-      }
-    })
-
-    // 2. Also listen for changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('[AuthProvider] onAuthStateChange:', event)
+      (event, session) => {
+        console.log('[AuthProvider] event:', event, session?.user?.email)
         const user = session?.user ?? null
         setUser(user)
 
         if (user) {
-          await loadProfile(user)
+          loadProfile(user)
         } else {
           setProfile(null)
         }
 
+        // Always set loading false on first event
         if (!initialized.current) {
           initialized.current = true
           setLoading(false)
