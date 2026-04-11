@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Video,
@@ -61,52 +61,96 @@ interface AnalyticsData {
   userCosts: UserCost[];
 }
 
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-// Replace this with a real `src/lib/analytics.ts` call when available.
+// ── Transform API data to AnalyticsData ──────────────────────────────────────
 
-function getMockData(): AnalyticsData {
+interface ApiResponse {
+  jobs: {
+    total: number
+    totalCost: number
+    byModule: Record<string, { count: number; cost: number }>
+    byModel: Record<string, { count: number; cost: number }>
+    recent: Array<{ id: string; module: string; model: string; cost_usd: number; status: string; created_at: string }>
+  }
+  shorts: {
+    total: number
+    totalCost: number
+    recent: Array<{ id: string; title: string; cost_usd: number; status: string; created_at: string }>
+  }
+  combined: { totalCost: number; activeUsers: number }
+}
+
+function transformApiData(api: ApiResponse): AnalyticsData {
+  const totalItems = api.jobs.total + api.shorts.total
+  const totalCost = api.combined.totalCost
+
+  // Module usage
+  const moduleEntries = Object.entries(api.jobs.byModule)
+  const moduleTotalCost = moduleEntries.reduce((s, [, v]) => s + v.cost, 0) || 1
+  const moduleUsage: ModuleUsage[] = moduleEntries
+    .map(([name, v]) => ({
+      name,
+      calls: v.count,
+      tokens: null,
+      costUsd: v.cost,
+      pct: Math.round((v.cost / moduleTotalCost) * 100),
+    }))
+    .sort((a, b) => b.costUsd - a.costUsd)
+
+  // Add shorts as a module
+  if (api.shorts.total > 0) {
+    moduleUsage.push({
+      name: 'Shorts',
+      calls: api.shorts.total,
+      tokens: null,
+      costUsd: api.shorts.totalCost,
+      pct: Math.round((api.shorts.totalCost / (moduleTotalCost + api.shorts.totalCost)) * 100),
+    })
+  }
+
+  // Model usage
+  const modelUsage: ModelUsage[] = Object.entries(api.jobs.byModel)
+    .map(([model, v]) => ({
+      model,
+      provider: model.includes('flux') || model.includes('tts') ? 'fal.ai' : 'OpenRouter',
+      calls: v.count,
+      tokens: null,
+      costUsd: v.cost,
+    }))
+    .sort((a, b) => b.costUsd - a.costUsd)
+
+  // Recent sessions from jobs + shorts
+  const sessions: Session[] = [
+    ...api.jobs.recent.map((j) => ({
+      date: new Date(j.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      filename: j.module || j.model || 'ai-job',
+      durationLabel: '—',
+      sizeMb: 0,
+      costUsd: j.cost_usd ?? 0,
+      editingTimeMin: 0,
+      status: (j.status === 'completed' ? 'done' : j.status === 'failed' ? 'failed' : 'processing') as Session['status'],
+    })),
+    ...api.shorts.recent.map((s) => ({
+      date: new Date(s.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      filename: s.title || 'short',
+      durationLabel: '—',
+      sizeMb: 0,
+      costUsd: s.cost_usd ?? 0,
+      editingTimeMin: 0,
+      status: (s.status === 'completed' ? 'done' : s.status === 'failed' ? 'failed' : 'processing') as Session['status'],
+    })),
+  ].slice(0, 15)
+
   return {
-    totalVideos: 47,
-    totalCost: 22.5,
-    avgCostPerVideo: 0.48,
-    avgEditingTimeMin: 2.8,
-    activeUsers: 3,
-
-    moduleUsage: [
-      { name: "Transcrição (Whisper)", calls: 45, tokens: null, costUsd: 2.7, pct: 12 },
-      { name: "Análise (Claude)", calls: 45, tokens: 125000, costUsd: 8.5, pct: 38 },
-      { name: "B-Roll (Pexels)", calls: 180, tokens: null, costUsd: 0.0, pct: 0 },
-      { name: "Legendas IA", calls: 90, tokens: 15000, costUsd: 1.2, pct: 5 },
-      { name: "Copy p/ Posts", calls: 30, tokens: 8000, costUsd: 0.8, pct: 4 },
-      { name: "Render Vídeo", calls: 45, tokens: null, costUsd: 4.5, pct: 20 },
-      { name: "Logo IA", calls: 20, tokens: 10000, costUsd: 2.0, pct: 9 },
-      { name: "Mockups", calls: 15, tokens: 12000, costUsd: 1.8, pct: 8 },
-      { name: "Store Assets", calls: 10, tokens: 5000, costUsd: 0.5, pct: 2 },
-    ],
-
-    modelUsage: [
-      { model: "claude-sonnet-4", provider: "OpenRouter", calls: 120, tokens: 80000, costUsd: 6.4 },
-      { model: "whisper-large-v3", provider: "OpenAI", calls: 45, tokens: null, costUsd: 2.7 },
-      { model: "gpt-4o-mini", provider: "OpenRouter", calls: 60, tokens: 30000, costUsd: 0.9 },
-      { model: "claude-haiku-4.5", provider: "OpenRouter", calls: 90, tokens: 15000, costUsd: 1.2 },
-    ],
-
-    sessions: [
-      { date: "30/03", filename: "video1.mp4", durationLabel: "10:23", sizeMb: 245, costUsd: 0.62, editingTimeMin: 3, status: "done" },
-      { date: "29/03", filename: "talk2.mp4", durationLabel: "5:10", sizeMb: 120, costUsd: 0.31, editingTimeMin: 2, status: "done" },
-      { date: "29/03", filename: "entrevista.mp4", durationLabel: "22:47", sizeMb: 560, costUsd: 1.37, editingTimeMin: 5, status: "done" },
-      { date: "28/03", filename: "podcast_ep12.mp4", durationLabel: "45:00", sizeMb: 1100, costUsd: 2.70, editingTimeMin: 8, status: "done" },
-      { date: "28/03", filename: "reel_promo.mp4", durationLabel: "1:30", sizeMb: 38, costUsd: 0.09, editingTimeMin: 1, status: "failed" },
-      { date: "27/03", filename: "webinar_mar.mp4", durationLabel: "58:12", sizeMb: 1420, costUsd: 3.49, editingTimeMin: 10, status: "done" },
-      { date: "26/03", filename: "short_tips.mp4", durationLabel: "2:15", sizeMb: 55, costUsd: 0.14, editingTimeMin: 1, status: "processing" },
-    ],
-
-    userCosts: [
-      { userId: "maira@studio.com", totalVideos: 28, totalCostUsd: 13.44, avgCostUsd: 0.48 },
-      { userId: "ana@studio.com", totalVideos: 12, totalCostUsd: 5.76, avgCostUsd: 0.48 },
-      { userId: "carlos@studio.com", totalVideos: 7, totalCostUsd: 3.36, avgCostUsd: 0.48 },
-    ],
-  };
+    totalVideos: totalItems,
+    totalCost,
+    avgCostPerVideo: totalItems > 0 ? totalCost / totalItems : 0,
+    avgEditingTimeMin: 0,
+    activeUsers: api.combined.activeUsers,
+    moduleUsage,
+    modelUsage,
+    sessions,
+    userCosts: [],
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -283,8 +327,38 @@ function CostEstimator() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
-  const data = getMockData();
-  const maxModulePct = Math.max(...data.moduleUsage.map((m) => m.pct));
+  const [data, setData] = useState<AnalyticsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/admin/analytics')
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then((api: ApiResponse) => setData(transformApiData(api)))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
+      </div>
+    )
+  }
+
+  if (error || !data) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-red-400">
+        <AlertCircle className="w-5 h-5 mr-2" /> {error || 'Erro ao carregar dados'}
+      </div>
+    )
+  }
+
+  const maxModulePct = Math.max(...data.moduleUsage.map((m) => m.pct), 1);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -299,7 +373,7 @@ export default function AnalyticsPage() {
         </Link>
         <div>
           <h1 className="text-lg font-semibold leading-tight">Painel de Custos e Uso</h1>
-          <p className="text-xs text-zinc-500">Dados simulados — integre src/lib/analytics.ts para dados reais</p>
+          <p className="text-xs text-zinc-500">Dados reais do Supabase</p>
         </div>
       </div>
 

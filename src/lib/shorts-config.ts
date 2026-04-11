@@ -3,7 +3,7 @@ import type { VisualMode, TTSProvider } from '@/types/shorts'
 export const SUPER_ADMIN_EMAIL = 'rafael@elabdata.com.br'
 
 export const TTS_COSTS: Record<TTSProvider, number> = {
-  fal_ai: 0.02,
+  fal_ai: 0.10,
   elevenlabs: 0.08,
   openai: 0.015,
 }

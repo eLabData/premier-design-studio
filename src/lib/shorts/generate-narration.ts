@@ -15,7 +15,7 @@ export async function generateNarration(
 ): Promise<NarrationResult> {
   switch (provider) {
     case 'fal_ai':
-      return generateInworldTTS(text, language, falKey)
+      return generateMiniMaxTTS(text, language, falKey)
     case 'openai':
       return generateOpenAITTS(text, language, openRouterKey)
     case 'elevenlabs':
@@ -25,34 +25,48 @@ export async function generateNarration(
   }
 }
 
-async function generateInworldTTS(
+async function generateMiniMaxTTS(
   text: string,
   language: string,
   falKey: string,
 ): Promise<NarrationResult> {
-  // Inworld TTS — fast, no reference audio needed
-  const voice = language === 'pt-br' ? 'Celeste (en)' : 'Hank (en)'
+  // MiniMax Speech-02 HD — 30+ languages, 300+ voices, emotion control
+  // PT-BR: use Friendly_Person (neutral, clear) or Inspirational_girl
+  // EN: use Calm_Woman or Deep_Voice_Man
+  const voiceId = language === 'pt-br' ? 'Friendly_Person' : 'Deep_Voice_Man'
 
-  const response = await fetch('https://fal.run/fal-ai/inworld-tts', {
+  const response = await fetch('https://fal.run/fal-ai/minimax/speech-02-hd', {
     method: 'POST',
     headers: {
       Authorization: `Key ${falKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ text, voice }),
+    body: JSON.stringify({
+      text,
+      voice_setting: {
+        voice_id: voiceId,
+        speed: language === 'pt-br' ? 1.1 : 1.0,
+        vol: 1.0,
+        pitch: 0,
+      },
+      output_format: 'mp3',
+    }),
   })
 
   if (!response.ok) {
     const errText = await response.text()
-    throw new Error(`fal.ai TTS error ${response.status}: ${errText}`)
+    throw new Error(`MiniMax TTS error ${response.status}: ${errText}`)
   }
 
   const data = await response.json()
-  const audioUrl = data.audio?.url ?? ''
+  const audioUrl = data.audio?.url ?? data.audio_file?.url ?? ''
   const wordCount = text.split(/\s+/).length
   const durationSec = Math.ceil((wordCount / 150) * 60)
 
-  return { audioUrl, durationSec, costUsd: 0.02 }
+  // $0.10 per 1000 chars
+  const costUsd = Math.ceil(text.length / 1000) * 0.10
+
+  return { audioUrl, durationSec, costUsd }
 }
 
 async function generateOpenAITTS(

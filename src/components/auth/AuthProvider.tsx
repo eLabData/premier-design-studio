@@ -22,19 +22,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       setUser(user)
       if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-        if (data) {
-          setProfile(applyAdminOverride(data, user.email ?? undefined) as never)
-        } else {
-          // Profile doesn't exist yet — create minimal one
-          setProfile(applyAdminOverride(
-            { id: user.id, email: user.email, full_name: null, avatar_url: null, plan: 'free', stripe_customer_id: null, stripe_subscription_id: null },
-            user.email ?? undefined
-          ) as never)
+        const fallbackProfile = {
+          id: user.id, email: user.email, full_name: null, avatar_url: null,
+          plan: 'free', stripe_customer_id: null, stripe_subscription_id: null,
+        }
+        try {
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+          setProfile(applyAdminOverride(data || fallbackProfile, user.email ?? undefined) as never)
+        } catch {
+          // If profiles query fails (RLS, network), still set profile with admin override
+          setProfile(applyAdminOverride(fallbackProfile, user.email ?? undefined) as never)
         }
       }
       setLoading(false)
