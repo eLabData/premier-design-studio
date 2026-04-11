@@ -152,7 +152,7 @@ export default function ShortsPage() {
   // Image regen modal
   const [regenModalScene, setRegenModalScene] = useState<number | null>(null)
   const [regenPrompt, setRegenPrompt] = useState('')
-  const [regenModel, setRegenModel] = useState<'schnell' | 'kontext-pro'>('schnell')
+  const [regenModel, setRegenModel] = useState<'schnell' | 'kontext-pro'>('kontext-pro')
   const [regenBaseImage, setRegenBaseImage] = useState<string | null>(null)
 
   // Gallery
@@ -294,7 +294,7 @@ export default function ShortsPage() {
     const scene = currentShort?.scenes?.[sceneIndex]
     setRegenModalScene(sceneIndex)
     setRegenPrompt(scene?.imagePrompt || scene?.text || '')
-    setRegenModel('schnell')
+    setRegenModel('kontext-pro')
     setRegenBaseImage(null)
   }
 
@@ -310,11 +310,12 @@ export default function ShortsPage() {
         prompt,
       }
 
-      if (regenModel === 'kontext-pro' && regenBaseImage) {
-        // Use base image with Kontext for editing
+      // Always set vertical format
+      body.image_size = { width: 1080, height: 1920 }
+
+      // If base image provided, use it (works with both models)
+      if (regenBaseImage) {
         body.imageData = regenBaseImage
-      } else {
-        body.image_size = { width: 1080, height: 1920 }
       }
 
       const res = await fetch('/api/ai/image-edit', {
@@ -1141,47 +1142,57 @@ export default function ShortsPage() {
               <label className="text-xs font-medium text-zinc-400">Modelo</label>
               <div className="flex gap-2">
                 <button
-                  onClick={() => { setRegenModel('schnell'); setRegenBaseImage(null) }}
-                  className={`flex-1 px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
-                    regenModel === 'schnell' ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-zinc-700 bg-zinc-800 text-zinc-400'
-                  }`}
-                >
-                  FLUX Schnell — Rapido ($0.003)
-                </button>
-                <button
                   onClick={() => setRegenModel('kontext-pro')}
                   className={`flex-1 px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
                     regenModel === 'kontext-pro' ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-zinc-700 bg-zinc-800 text-zinc-400'
                   }`}
                 >
-                  FLUX Kontext — Edicao ($0.05)
+                  Kontext Pro — Realista ($0.05)
+                </button>
+                <button
+                  onClick={() => setRegenModel('schnell')}
+                  className={`flex-1 px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                    regenModel === 'schnell' ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-zinc-700 bg-zinc-800 text-zinc-400'
+                  }`}
+                >
+                  Schnell — Rapido ($0.003)
                 </button>
               </div>
             </div>
 
-            {/* Upload base image (only for Kontext) */}
-            {regenModel === 'kontext-pro' && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-400">Imagem base (opcional)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleBaseImageUpload}
-                  className="w-full text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-zinc-700 file:bg-zinc-800 file:text-zinc-300 file:text-xs file:font-medium hover:file:bg-zinc-700 file:cursor-pointer"
-                />
-                {regenBaseImage && (
-                  <div className="rounded-lg overflow-hidden h-20 w-20">
+            {/* Upload base image — always available */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-400">Imagem de referencia (opcional)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBaseImageUpload}
+                className="w-full text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-zinc-700 file:bg-zinc-800 file:text-zinc-300 file:text-xs file:font-medium hover:file:bg-zinc-700 file:cursor-pointer"
+              />
+              {regenBaseImage && (
+                <div className="flex items-center gap-2">
+                  <div className="rounded-lg overflow-hidden h-16 w-16 flex-shrink-0">
                     <img src={regenBaseImage} alt="Base" className="w-full h-full object-cover" />
                   </div>
-                )}
+                  <button onClick={() => setRegenBaseImage(null)} className="text-xs text-red-400 hover:text-red-300">Remover</button>
+                </div>
+              )}
+            </div>
+
+            {/* Loading state inside modal */}
+            {regeneratingScene !== null && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                <p className="text-sm text-purple-300">Gerando imagem com {regenModel === 'kontext-pro' ? 'Kontext Pro' : 'Schnell'}...</p>
               </div>
             )}
 
             {/* Actions */}
             <div className="flex gap-3 pt-2">
               <button
-                onClick={() => setRegenModalScene(null)}
-                className="flex-1 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 hover:text-white transition-colors"
+                onClick={() => { if (regeneratingScene === null) setRegenModalScene(null) }}
+                disabled={regeneratingScene !== null}
+                className="flex-1 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
