@@ -695,6 +695,7 @@ export default function ShortsPage() {
                 </div>
               ) : costEstimate ? (
                 <div className="space-y-3">
+                  {/* Credits view (for regular users) */}
                   <div className="flex items-end gap-2">
                     <span className="text-4xl font-bold text-white tabular-nums">
                       {costEstimate.estimatedCredits}
@@ -703,18 +704,27 @@ export default function ShortsPage() {
                   </div>
                   <div className="flex items-center gap-4 text-sm text-zinc-400">
                     <span>Duracao estimada: ~{costEstimate.estimatedDurationSec}s</span>
-                    {costEstimate.estimatedCostUsd !== undefined && (
-                      <span className="text-zinc-500">${costEstimate.estimatedCostUsd.toFixed(3)} USD</span>
-                    )}
                   </div>
-                  {costEstimate.breakdown && (
-                    <div className="text-xs text-zinc-600 space-y-1">
-                      {Object.entries(costEstimate.breakdown).map(([k, v]) => (
-                        <div key={k} className="flex justify-between">
-                          <span>{k}</span>
-                          <span>{String(v)}</span>
+
+                  {/* Admin: real cost breakdown */}
+                  {costEstimate.estimatedCostUsd !== undefined && (
+                    <div className="mt-3 p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Custo Real (Admin)</span>
+                        <span className="text-sm font-semibold text-green-400">${costEstimate.estimatedCostUsd.toFixed(2)}</span>
+                      </div>
+                      {costEstimate.breakdown && (
+                        <div className="text-xs text-zinc-500 space-y-0.5">
+                          {Object.entries(costEstimate.breakdown)
+                            .filter(([, v]) => Number(v) > 0)
+                            .map(([k, v]) => (
+                              <div key={k} className="flex justify-between">
+                                <span className="capitalize">{k}</span>
+                                <span className="tabular-nums">${Number(v).toFixed(2)}</span>
+                              </div>
+                            ))}
                         </div>
-                      ))}
+                      )}
                     </div>
                   )}
                 </div>
@@ -1006,7 +1016,7 @@ export default function ShortsPage() {
                 {/* Admin: cost info */}
                 {costEstimate?.estimatedCostUsd !== undefined && (
                   <div className="text-xs text-zinc-600 text-right">
-                    Custo total: ${costEstimate.estimatedCostUsd.toFixed(4)} USD
+                    Custo real: ${costEstimate.estimatedCostUsd.toFixed(2)} USD
                   </div>
                 )}
               </div>

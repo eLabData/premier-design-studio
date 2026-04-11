@@ -40,7 +40,7 @@ export function estimateCost(
     video_clips: videoClipsCost,
     composition: 0,
     metadata: METADATA_COST,
-    total: SCRIPT_COST + ttsCost + imagesCost + videoClipsCost + METADATA_COST,
+    total: Math.round((SCRIPT_COST + ttsCost + imagesCost + videoClipsCost + METADATA_COST) * 10000) / 10000,
   }
 
   return { costUsd: breakdown.total, breakdown }
