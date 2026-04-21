@@ -35,6 +35,29 @@ type Format = 'short' | 'normal'
 type VisualMode = 'images' | 'video_ai' | 'hybrid'
 type TtsProvider = 'fal_ai' | 'elevenlabs' | 'openai'
 
+type AiModelId =
+  | 'schnell'
+  | 'flux-dev'
+  | 'ideogram-v3'
+  | 'recraft-v3'
+  | 'kontext-pro'
+  | 'nano-banana-pro'
+
+const AI_MODELS: Array<{
+  id: AiModelId
+  label: string
+  cost: number
+  tag: string
+  needsBase?: boolean
+}> = [
+  { id: 'schnell', label: 'Schnell', cost: 0.003, tag: 'rápido' },
+  { id: 'flux-dev', label: 'FLUX Dev', cost: 0.025, tag: 'equilibrado' },
+  { id: 'ideogram-v3', label: 'Ideogram V3', cost: 0.06, tag: 'tipografia/pôster' },
+  { id: 'recraft-v3', label: 'Recraft V3', cost: 0.04, tag: 'ilustração/logo' },
+  { id: 'kontext-pro', label: 'Kontext Pro', cost: 0.05, tag: 'edita imagem', needsBase: true },
+  { id: 'nano-banana-pro', label: 'Nano Banana Pro', cost: 0.15, tag: 'premium 2K' },
+]
+
 interface CostEstimate {
   estimatedCredits: number
   estimatedDurationSec: number
@@ -153,7 +176,7 @@ export default function ShortsPage() {
   const [regenModalScene, setRegenModalScene] = useState<number | null>(null)
   const [regenTab, setRegenTab] = useState<'upload' | 'stock' | 'ai'>('stock')
   const [regenPrompt, setRegenPrompt] = useState('')
-  const [regenModel, setRegenModel] = useState<'schnell' | 'kontext-pro'>('kontext-pro')
+  const [regenModel, setRegenModel] = useState<AiModelId>('kontext-pro')
   const [regenBaseImage, setRegenBaseImage] = useState<string | null>(null)
   const [stockQuery, setStockQuery] = useState('')
   const [stockResults, setStockResults] = useState<Array<{ id: number; url: string; urlLarge: string; alt: string; photographer: string }>>([])
@@ -300,7 +323,7 @@ export default function ShortsPage() {
     setRegenTab('stock')
     setRegenPrompt(scene?.imagePrompt || scene?.text || '')
     setStockQuery(scene?.imagePrompt || scene?.text || '')
-    setRegenModel('kontext-pro')
+    setRegenModel('flux-dev')
     setRegenBaseImage(null)
     setStockResults([])
   }
@@ -1277,23 +1300,30 @@ export default function ShortsPage() {
                     placeholder="Descreva a imagem..."
                   />
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setRegenModel('kontext-pro')}
-                    className={`flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                      regenModel === 'kontext-pro' ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-zinc-700 bg-zinc-800 text-zinc-400'
-                    }`}
-                  >
-                    Kontext Pro ($0.05)
-                  </button>
-                  <button
-                    onClick={() => setRegenModel('schnell')}
-                    className={`flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                      regenModel === 'schnell' ? 'border-purple-500 bg-purple-500/10 text-purple-300' : 'border-zinc-700 bg-zinc-800 text-zinc-400'
-                    }`}
-                  >
-                    Schnell ($0.003)
-                  </button>
+                <div className="grid grid-cols-2 gap-2">
+                  {AI_MODELS.map((m) => {
+                    const active = regenModel === m.id
+                    const disabled = m.needsBase && !regenBaseImage
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => !disabled && setRegenModel(m.id)}
+                        disabled={disabled}
+                        title={disabled ? 'Faça upload de uma imagem base para editar' : m.tag}
+                        className={`px-3 py-2 rounded-lg border text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                          active
+                            ? 'border-purple-500 bg-purple-500/10 text-purple-200'
+                            : 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-600'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium">{m.label}</span>
+                          <span className="text-[10px] text-zinc-500">${m.cost.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')}</span>
+                        </div>
+                        <div className="text-[10px] text-zinc-500 mt-0.5">{m.tag}</div>
+                      </button>
+                    )
+                  })}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-zinc-400">Imagem base (opcional)</label>
