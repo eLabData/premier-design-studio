@@ -40,6 +40,7 @@ const modules = [
     subApps: [
       { title: "Editor de Video", description: "Corte, timeline, legendas", href: "/editor" },
       { title: "Gerador de Shorts", description: "Crie shorts virais com IA", href: "/shorts" },
+      { title: "Lip Sync Studio", description: "Avatar falante + dublagem com IA", href: "/lipsync" },
     ],
   },
   {
