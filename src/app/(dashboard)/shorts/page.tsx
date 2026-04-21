@@ -23,6 +23,9 @@ import {
   Download,
   RotateCcw,
   Play,
+  Pencil,
+  Save,
+  X as XIcon,
 } from 'lucide-react'
 import { Player } from '@remotion/player'
 import { FacelessShort } from '@/remotion/compositions/FacelessShort'
@@ -170,6 +173,9 @@ export default function ShortsPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [regeneratingScene, setRegeneratingScene] = useState<number | null>(null)
   const [regeneratingAudio, setRegeneratingAudio] = useState(false)
+  const [editingSceneText, setEditingSceneText] = useState<number | null>(null)
+  const [editingTextValue, setEditingTextValue] = useState('')
+  const [savingSceneText, setSavingSceneText] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
   // Image regen modal
@@ -371,6 +377,40 @@ export default function ShortsPage() {
       alert('Erro ao regenerar imagem. Tente novamente.')
     }
     setRegeneratingScene(null)
+  }
+
+  const startEditSceneText = (sceneIndex: number) => {
+    const scene = currentShort?.scenes?.[sceneIndex]
+    if (!scene) return
+    setEditingSceneText(sceneIndex)
+    setEditingTextValue(scene.text)
+  }
+
+  const cancelEditSceneText = () => {
+    setEditingSceneText(null)
+    setEditingTextValue('')
+  }
+
+  const saveSceneText = async () => {
+    if (editingSceneText === null || !currentShort?.scenes || !shortId) return
+    const sceneIndex = editingSceneText
+    const newText = editingTextValue.trim()
+    if (!newText) return
+    setSavingSceneText(true)
+    try {
+      const updatedScenes = [...currentShort.scenes]
+      updatedScenes[sceneIndex] = { ...updatedScenes[sceneIndex], text: newText }
+      setCurrentShort({ ...currentShort, scenes: updatedScenes })
+      await fetch(`/api/ai/shorts/${shortId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenes: updatedScenes }),
+      })
+      setEditingSceneText(null)
+      setEditingTextValue('')
+    } finally {
+      setSavingSceneText(false)
+    }
   }
 
   const handleBaseImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1011,16 +1051,57 @@ export default function ShortsPage() {
                             </div>
                           )}
                           <div className="p-3 flex-1 space-y-2">
-                            <p className="text-sm text-zinc-200 leading-relaxed">{scene.text}</p>
+                            {editingSceneText === i ? (
+                              <div className="space-y-2">
+                                <textarea
+                                  value={editingTextValue}
+                                  onChange={(e) => setEditingTextValue(e.target.value)}
+                                  rows={3}
+                                  autoFocus
+                                  className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-purple-500/50 text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={saveSceneText}
+                                    disabled={savingSceneText || !editingTextValue.trim()}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-[11px] font-medium text-white"
+                                  >
+                                    {savingSceneText ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                    Salvar
+                                  </button>
+                                  <button
+                                    onClick={cancelEditSceneText}
+                                    disabled={savingSceneText}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-[11px] font-medium text-zinc-400 hover:text-white"
+                                  >
+                                    <XIcon className="w-3 h-3" /> Cancelar
+                                  </button>
+                                  <span className="text-[10px] text-zinc-500 ml-auto">Lembre de regenerar o áudio após editar</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="group">
+                                <p className="text-sm text-zinc-200 leading-relaxed">{scene.text}</p>
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 flex-wrap">
                               {scene.motion && (
                                 <span className="inline-block px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-[10px] font-medium text-purple-300 uppercase tracking-wider">
                                   {scene.motion}
                                 </span>
                               )}
+                              {editingSceneText !== i && (
+                                <button
+                                  onClick={() => startEditSceneText(i)}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-[10px] font-medium text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                  Editar texto
+                                </button>
+                              )}
                               <button
                                 onClick={() => openRegenModal(i)}
-                                disabled={regeneratingScene === i}
+                                disabled={regeneratingScene === i || editingSceneText === i}
                                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-[10px] font-medium text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors disabled:opacity-50"
                               >
                                 {regeneratingScene === i ? (
